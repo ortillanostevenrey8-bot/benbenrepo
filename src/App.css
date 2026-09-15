@@ -6,6 +6,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* WALASTIK watermark background text */
+.App::before {
+  content: "WALASTIK";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 15vw;
+  font-weight: bold;
+  color: rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+  z-index: 0;
+  letter-spacing: 20px;
+  font-family: Arial, sans-serif;
 }
 
 .App-logo {
@@ -43,28 +61,30 @@
   justify-content: center;
   align-items: flex-start;
   width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 /* Transparent box styling */
 .box {
-  backdrop-filter: blur(10px);
-  background-color: rgba(255, 255, 255, 0.15);
-  border: 2px solid rgba(255, 255, 255, 0.25);
-  border-radius: 15px;
+  backdrop-filter: blur(15px);
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
   padding: 40px;
   flex: 1;
   min-width: 300px;
   max-width: 500px;
-  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2);
   transition: all 0.3s ease;
   color: white;
 }
 
 .box:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.4);
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
   transform: translateY(-5px);
-  box-shadow: 0 12px 40px rgba(31, 38, 135, 0.5);
+  box-shadow: 0 12px 40px rgba(31, 38, 135, 0.3);
 }
 
 @keyframes App-logo-spin {
