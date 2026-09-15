@@ -1,7 +1,29 @@
 .App {
   text-align: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, 
+    #1a1a2e 0%, 
+    #1a1a2e 10%,
+    #e63946 10%,
+    #e63946 20%,
+    #f1f1f1 20%,
+    #f1f1f1 30%,
+    #1a1a2e 30%,
+    #1a1a2e 40%,
+    #e63946 40%,
+    #e63946 50%,
+    #f1f1f1 50%,
+    #f1f1f1 60%,
+    #1a1a2e 60%,
+    #1a1a2e 70%,
+    #e63946 70%,
+    #e63946 80%,
+    #f1f1f1 80%,
+    #f1f1f1 90%,
+    #1a1a2e 90%,
+    #1a1a2e 100%
+  );
+  background-size: 100% 100%;
   padding: 20px;
   display: flex;
   align-items: center;
@@ -17,14 +39,14 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 20vw;
-  font-weight: bold;
-  color: rgba(255, 255, 255, 0.15);
+  font-size: 18vw;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.12);
   white-space: nowrap;
   z-index: 0;
-  letter-spacing: 30px;
+  letter-spacing: 15px;
   font-family: Arial, sans-serif;
-  text-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+  text-shadow: 0 0 40px rgba(230, 57, 70, 0.2);
 }
 
 .App-logo {
@@ -69,23 +91,23 @@
 /* Transparent box styling */
 .box {
   backdrop-filter: blur(20px);
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(26, 26, 46, 0.3);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
   border-radius: 20px;
   padding: 40px;
   flex: 1;
   min-width: 300px;
   max-width: 500px;
-  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+  box-shadow: 0 8px 32px rgba(230, 57, 70, 0.2);
   transition: all 0.3s ease;
   color: white;
 }
 
 .box:hover {
-  background-color: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(26, 26, 46, 0.4);
+  border-color: rgba(255, 255, 255, 0.3);
   transform: translateY(-5px);
-  box-shadow: 0 12px 40px rgba(31, 38, 135, 0.25);
+  box-shadow: 0 12px 40px rgba(230, 57, 70, 0.3);
 }
 
 @keyframes App-logo-spin {
