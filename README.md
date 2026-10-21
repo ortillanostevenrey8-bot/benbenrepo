@@ -1,4 +1,50 @@
-# Getting Started with Create React App
+# Knowledge Announcement
+
+This React app stores announcements and knowledge entries in Cloud Firestore.
+
+## Connect Firebase
+
+1. In the [Firebase Console](https://console.firebase.google.com/), create or open the `knowledge-announcement` project.
+2. Open **Project settings**, add a **Web app**, and copy its configuration values.
+3. In this project folder, copy `.env.example` to `.env.local` and replace every placeholder with the values from Firebase.
+4. In Firebase Console, open **Build > Firestore Database**, create a database, and choose a location.
+5. Start the app with `npm start`. The app creates the `announcements` and `knowledge` collections when the first entry is added.
+
+## GitHub Pages
+
+Push changes to the `main` branch to build and deploy the site with the GitHub Actions workflow. The repository's `homepage` setting configures asset URLs for the `/benbenrepo/` project path.
+
+For Firebase Authentication to work on the deployed site, add `ortillanostevenrey8-bot.github.io` to **Authentication > Settings > Authorized domains** in Firebase Console. Deploy the Firestore rules in `firestore.rules` before allowing users to access the database.
+
+The AI assistant requires `REACT_APP_GEMINI_API_KEY`. Create React App embeds `REACT_APP_*` values in public browser JavaScript, so do not put a private Gemini key in a GitHub Actions variable or commit it in an environment file. Use a server-side function as a protected proxy before enabling the assistant publicly.
+
+The Firebase web configuration is safe to include in a browser bundle, but Firestore security rules still protect the data. For a private internal app while testing, use:
+
+```
+rules_version = '2';
+service cloud.firestore {
+	match /databases/{database}/documents {
+		match /{document=**} {
+			allow read, write: if false;
+		}
+	}
+}
+```
+
+This denies all browser access, so use authenticated rules before deploying. Do not use `allow read, write: if true` in production.
+
+## Deploy Firebase Functions
+
+Deleting another user's account requires the Firebase Admin SDK and must run on the server. Install the function dependencies and deploy the callable function from this project directory:
+
+```powershell
+npm install --prefix functions
+firebase deploy --only functions:deleteUserAccount
+```
+
+The deployer must be signed in to the Firebase CLI and have permission to deploy Cloud Functions. Cloud Functions may require the Firebase project to use the Blaze billing plan. The callable verifies the signed-in administrator, deletes the target's Authentication account, and cleans up their user profile, username index, and profile picture. Deploy this function before using **Delete account** in the admin user list.
+
+## Available Scripts
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 

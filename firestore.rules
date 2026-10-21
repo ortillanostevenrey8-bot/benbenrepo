@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /announcements/{announcementId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /knowledge/{knowledgeId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow get: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin()
+        || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create: if signedIn()
+        && (
+          (request.auth.uid == userId
+            && request.resource.data.uid == request.auth.uid
+            && (
+              request.resource.data.role == 'user'
+              || (request.resource.data.role == 'admin'
+                && !exists(/databases/$(database)/documents/system/adminBootstrap))
+            ))
+          || (isAdmin()
+            && request.resource.data.uid == userId
+            && request.resource.data.role in ['admin', 'user']
+            && request.resource.data.keys().hasOnly([
+              'uid', 'name', 'username', 'authEmail', 'role', 'createdAt', 'lastSignInAt'
+            ])
+            && request.resource.data.name is string
+            && request.resource.data.username is string
+            && request.resource.data.authEmail is string)
+        );
+      allow update: if isAdmin()
+        || (signedIn()
+          && request.auth.uid == userId
+          && (
+            request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['lastSignInAt', 'photoDataUrl', 'username', 'authEmail', 'name'])
+            || (request.resource.data.uid == request.auth.uid
+              && request.resource.data.role == 'admin'
+              && !exists(/databases/$(database)/documents/system/adminBootstrap))
+          ));
+      allow delete: if signedIn() && (request.auth.uid == userId || isAdmin());
+    }
+
+    match /usernameIndex/{username} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['uid', 'authEmail'])
+        && request.resource.data.uid is string
+        && request.resource.data.authEmail is string
+        && exists(/databases/$(database)/documents/users/$(request.resource.data.uid))
+        && get(/databases/$(database)/documents/users/$(request.resource.data.uid)).data.authEmail
+          == request.resource.data.authEmail
+        && get(/databases/$(database)/documents/users/$(request.resource.data.uid)).data.username == username
+        && (request.auth.uid == request.resource.data.uid || isAdmin());
+      allow update: if signedIn()
+        && resource.data.uid == request.resource.data.uid
+        && request.resource.data.keys().hasOnly(['uid', 'authEmail'])
+        && request.resource.data.authEmail is string
+        && exists(/databases/$(database)/documents/users/$(request.resource.data.uid))
+        && get(/databases/$(database)/documents/users/$(request.resource.data.uid)).data.authEmail
+          == request.resource.data.authEmail
+        && get(/databases/$(database)/documents/users/$(request.resource.data.uid)).data.username == username
+        && (request.auth.uid == resource.data.uid || isAdmin());
+      allow delete: if signedIn() && (request.auth.uid == resource.data.uid || isAdmin());
+    }
+
+    match /system/adminBootstrap {
+      allow create: if signedIn()
+        && !exists(/databases/$(database)/documents/system/adminBootstrap)
+        && request.resource.data.uid == request.auth.uid
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow read, update, delete: if false;
+    }
+  }
+}

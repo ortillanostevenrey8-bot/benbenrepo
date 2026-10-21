@@ -1,0 +1,1692 @@
+/* =====================================================
+   KNOWLEDGE OVERLAY
+===================================================== */
+
+.knowledge-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 30px;
+
+  background: rgba(0, 0, 0, 0.68);
+
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+
+/* =====================================================
+   KNOWLEDGE PANEL
+===================================================== */
+
+.knowledge-panel {
+  width: min(1100px, 100%);
+
+  max-height: 90vh;
+
+  overflow-y: auto;
+
+  padding: 30px;
+
+  border: 1px solid #007cc2;
+
+  border-radius: 18px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(4, 25, 43, 0.98),
+      rgba(3, 13, 25, 0.98)
+    );
+
+  box-shadow:
+    0 25px 80px rgba(0, 0, 0, 0.55);
+}
+
+.knowledge-panel::-webkit-scrollbar {
+  width: 7px;
+}
+
+.knowledge-panel::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.knowledge-panel::-webkit-scrollbar-thumb {
+  background: #ff2148;
+  border-radius: 20px;
+}
+
+.knowledge-sticky-top {
+  position: sticky;
+  top: -30px;
+  z-index: 20;
+  margin: -30px -30px 20px;
+  padding: 30px 30px 14px;
+  background: linear-gradient(135deg, rgba(4, 25, 43, 0.99), rgba(3, 13, 25, 0.99));
+  border-bottom: 1px solid rgba(0, 174, 255, 0.16);
+}
+
+
+/* =====================================================
+   HEADER
+===================================================== */
+
+.knowledge-header {
+  display: flex;
+
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 25px;
+
+  margin-bottom: 25px;
+}
+
+.knowledge-label {
+  display: block;
+
+  margin-bottom: 10px;
+
+  color: #ff3157;
+
+  font-size: 11px;
+
+  font-weight: 800;
+
+  letter-spacing: 6px;
+}
+
+.knowledge-header h1 {
+  margin: 0;
+
+  color: #ffffff;
+
+  font-size: 34px;
+
+  font-weight: 700;
+}
+
+.knowledge-header p {
+  margin: 10px 0 0;
+
+  color: #9eb5c9;
+
+  font-size: 14px;
+}
+
+.knowledge-close {
+  width: 42px;
+  height: 42px;
+
+  flex-shrink: 0;
+
+  border: 1px solid #ff2148;
+
+  border-radius: 9px;
+
+  color: #ffffff;
+
+  background: transparent;
+
+  font-size: 25px;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.knowledge-close:hover {
+  background: #ff2148;
+  transform: translateY(-1px);
+}
+
+
+/* =====================================================
+   SEARCH
+===================================================== */
+
+.knowledge-search {
+  display: grid;
+
+  grid-template-columns: 1fr auto;
+
+  gap: 12px;
+
+  margin-bottom: 18px;
+}
+
+.knowledge-search-input {
+  display: flex;
+
+  align-items: center;
+
+  min-width: 0;
+
+  height: 48px;
+
+  padding: 0 15px;
+
+  border: 1px solid #007fc8;
+
+  border-radius: 9px;
+
+  background: rgba(0, 20, 37, 0.8);
+}
+
+.knowledge-search-input span {
+  margin-right: 10px;
+
+  color: #ff3157;
+}
+
+.knowledge-search-input input {
+  width: 100%;
+
+  border: none;
+
+  outline: none;
+
+  color: #ffffff;
+
+  background: transparent;
+
+  font-size: 14px;
+}
+
+.knowledge-search-input input::placeholder {
+  color: #718ca5;
+}
+
+.knowledge-search-button {
+  min-width: 120px;
+
+  padding: 0 20px;
+
+  border: 1px solid #ff2148;
+
+  border-radius: 9px;
+
+  color: #ffffff;
+
+  background: #ff2148;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.knowledge-search-button:hover:not(:disabled) {
+  background: #e91840;
+  transform: translateY(-1px);
+}
+
+.knowledge-search-button:disabled {
+  opacity: 0.6;
+
+  cursor: not-allowed;
+}
+
+
+/* =====================================================
+   TOOLBAR
+===================================================== */
+
+.knowledge-toolbar {
+  display: flex;
+
+  justify-content: flex-end;
+
+  margin-bottom: 20px;
+}
+
+.add-knowledge-button {
+  padding: 11px 18px;
+
+  border: 1px solid #ff2148;
+
+  border-radius: 8px;
+
+  color: #ffffff;
+
+  background: rgba(255, 33, 72, 0.08);
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.add-knowledge-button:hover {
+  background: #ff2148;
+  transform: translateY(-1px);
+}
+
+
+/* =====================================================
+   ADD FORM
+===================================================== */
+
+.knowledge-add-form {
+  display: grid;
+
+  gap: 12px;
+
+  margin-bottom: 22px;
+
+  padding: 18px;
+
+  border: 1px solid #007fc8;
+
+  border-radius: 10px;
+
+  background: rgba(0, 19, 35, 0.8);
+}
+
+.knowledge-add-form input,
+.knowledge-add-form textarea {
+  width: 100%;
+
+  padding: 12px;
+
+  border: 1px solid #24516e;
+
+  border-radius: 7px;
+
+  outline: none;
+
+  color: #ffffff;
+
+  background: #071725;
+
+  resize: vertical;
+}
+
+.knowledge-add-form input::placeholder,
+.knowledge-add-form textarea::placeholder {
+  color: #718ca5;
+}
+
+.knowledge-add-form input:focus,
+.knowledge-add-form textarea:focus {
+  border-color: #ff2148;
+}
+
+.knowledge-add-form textarea {
+  min-height: 120px;
+}
+
+.knowledge-add-form button {
+  justify-self: start;
+
+  padding: 10px 18px;
+
+  border: none;
+
+  border-radius: 7px;
+
+  color: #ffffff;
+
+  background: #ff2148;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.knowledge-add-form button:hover:not(:disabled) {
+  background: #e91840;
+  transform: translateY(-1px);
+}
+
+.knowledge-add-form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+
+/* =====================================================
+   DIVIDER
+===================================================== */
+
+.knowledge-divider {
+  height: 1px;
+
+  margin: 10px 0 25px;
+
+  background:
+    linear-gradient(
+      90deg,
+      #ff2148,
+      rgba(255, 33, 72, 0.15),
+      transparent
+    );
+}
+
+
+/* =====================================================
+   SECTIONS
+===================================================== */
+
+.knowledge-section {
+  margin-bottom: 30px;
+}
+
+.knowledge-section-header {
+  display: flex;
+
+  align-items: flex-end;
+
+  justify-content: space-between;
+
+  margin-bottom: 15px;
+}
+
+.knowledge-section-label {
+  display: block;
+
+  margin-bottom: 7px;
+
+  color: #ff3157;
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  letter-spacing: 5px;
+}
+
+.knowledge-section-header h2 {
+  margin: 0;
+
+  color: #ffffff;
+
+  font-size: 23px;
+}
+
+.knowledge-section-header p {
+  margin: 5px 0 0;
+
+  color: #7895ad;
+
+  font-size: 13px;
+}
+
+
+/* =====================================================
+   KNOWLEDGE LIST
+===================================================== */
+
+.knowledge-list {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 12px;
+
+  max-height: 480px;
+
+  overflow-y: auto;
+
+  padding-right: 5px;
+}
+
+.knowledge-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.knowledge-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.knowledge-list::-webkit-scrollbar-thumb {
+  background: #ff2148;
+
+  border-radius: 20px;
+}
+
+
+/* =====================================================
+   CARDS
+===================================================== */
+
+.knowledge-card {
+  position: relative;
+
+  padding: 18px;
+
+  border: 1px solid #075f8f;
+
+  border-radius: 10px;
+
+  background:
+    rgba(3, 25, 43, 0.88);
+
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.knowledge-card:hover {
+  border-color: #008ed6;
+
+  transform: translateY(-1px);
+}
+
+.knowledge-card-pinned {
+  border-color: #ff2148;
+}
+
+
+/* =====================================================
+   TAPPABLE KNOWLEDGE CARDS
+===================================================== */
+
+.knowledge-card-clickable,
+.ai-answer-card {
+  cursor: pointer;
+
+  -webkit-tap-highlight-color: transparent;
+}
+
+.knowledge-card-clickable:hover,
+.ai-answer-card:hover {
+  border-color: #00aeff;
+
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.28);
+}
+
+.knowledge-card-clickable:active,
+.ai-answer-card:active {
+  transform: translateY(0);
+}
+
+.knowledge-card-clickable:focus,
+.ai-answer-card:focus {
+  outline: none;
+}
+
+.knowledge-card-clickable:focus-visible,
+.ai-answer-card:focus-visible {
+  outline: 2px solid #00aeff;
+
+  outline-offset: 3px;
+}
+
+
+/*
+   Make the clickable card feel like one surface.
+   Buttons remain clickable because their own pointer
+   events are not disabled.
+*/
+
+.knowledge-card-clickable .knowledge-card-actions,
+.ai-answer-card .knowledge-card-actions {
+  position: relative;
+
+  z-index: 5;
+}
+
+.knowledge-card-clickable .knowledge-card-actions button,
+.ai-answer-card .knowledge-card-actions button {
+  position: relative;
+
+  z-index: 6;
+}
+
+
+/* =====================================================
+   CARD TOP
+===================================================== */
+
+.knowledge-card-top {
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+
+  gap: 15px;
+
+  margin-bottom: 12px;
+}
+
+.knowledge-card-top h3 {
+  margin: 0 0 8px;
+
+  color: #ffffff;
+
+  font-size: 16px;
+
+  line-height: 1.4;
+
+  word-break: break-word;
+}
+
+.knowledge-pinned-badge {
+  display: inline-block;
+
+  margin-bottom: 7px;
+
+  padding: 4px 8px;
+
+  border: 1px solid #ff2148;
+
+  border-radius: 5px;
+
+  color: #ff5573;
+
+  background: rgba(255, 33, 72, 0.06);
+
+  font-size: 9px;
+
+  font-weight: 800;
+
+  letter-spacing: 1px;
+}
+
+
+/* =====================================================
+   CARD CONTENT
+===================================================== */
+
+.knowledge-card-content {
+  color: #b5c7d7;
+
+  font-size: 14px;
+
+  line-height: 1.65;
+
+  white-space: pre-wrap;
+
+  overflow-wrap: anywhere;
+}
+
+.ai-answer-content {
+  color: #e0eaf3;
+
+  max-height: 300px;
+
+  overflow-y: auto;
+}
+
+.ai-answer-content::-webkit-scrollbar {
+  width: 5px;
+}
+
+.ai-answer-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ai-answer-content::-webkit-scrollbar-thumb {
+  background: #ff2148;
+
+  border-radius: 20px;
+}
+
+.ai-scope-notice {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-left: 3px solid #00aeff;
+  border-radius: 5px;
+  color: #b5d9e9;
+  background: rgba(0, 174, 255, .08);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.ai-source-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin-top: 10px;
+  color: #718fa0;
+  font-size: 10px;
+}
+
+.ai-source-links a {
+  color: #55caff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ai-source-links a:hover { color: #fff; }
+.ai-detail-source-links { margin-top: 18px; font-size: 12px; }
+
+.theme-light .ai-scope-notice { color: #275267; background: rgba(0, 130, 190, .08); }
+.theme-light .ai-source-links { color: #5d7786; }
+.theme-light .ai-source-links a { color: #006eaa; }
+
+
+/* =====================================================
+   DATE
+===================================================== */
+
+.knowledge-card-date {
+  margin-top: 15px;
+
+  color: #7695ad;
+
+  font-size: 12px;
+
+  line-height: 1.5;
+}
+
+.knowledge-card-date strong {
+  color: #ff5573;
+}
+
+
+/* =====================================================
+   ACTIONS
+===================================================== */
+
+.knowledge-card-actions {
+  display: flex;
+
+  gap: 8px;
+
+  margin-top: 15px;
+
+  flex-wrap: wrap;
+}
+
+.knowledge-card-actions button {
+  padding: 8px 15px;
+
+  border-radius: 7px;
+
+  font-size: 12px;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.knowledge-pin-button {
+  border: 1px solid #008dd1;
+
+  color: #d9f3ff;
+
+  background: transparent;
+}
+
+.knowledge-pin-button:hover:not(:disabled) {
+  background: #007dbb;
+}
+
+.knowledge-unpin-button {
+  border: 1px solid #ff2148;
+
+  color: #ffffff;
+
+  background: rgba(255, 33, 72, 0.1);
+}
+
+.knowledge-unpin-button:hover:not(:disabled) {
+  background: #ff2148;
+}
+
+.knowledge-delete-button {
+  border: 1px solid #ff2148;
+
+  color: #ff5272;
+
+  background: transparent;
+}
+
+.knowledge-delete-button:hover:not(:disabled) {
+  color: #ffffff;
+
+  background: #ff2148;
+}
+
+.knowledge-card-actions button:disabled {
+  opacity: 0.5;
+
+  cursor: not-allowed;
+}
+
+
+/* =====================================================
+   PIN INFORMATION
+===================================================== */
+
+.knowledge-pin-info {
+  margin-top: 12px;
+
+  padding-top: 10px;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+  color: #ff647f;
+
+  font-size: 12px;
+
+  line-height: 1.5;
+}
+
+.knowledge-pin-info strong {
+  color: #ffffff;
+}
+
+
+/* =====================================================
+   AI
+===================================================== */
+
+.ai-loading-card {
+  display: flex;
+
+  align-items: center;
+
+  gap: 15px;
+}
+
+.ai-loading-logo {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  width: 45px;
+  height: 45px;
+
+  flex-shrink: 0;
+
+  border: 1px solid #ff2148;
+
+  border-radius: 50%;
+
+  color: #ffffff;
+
+  background: #ff2148;
+
+  font-weight: 900;
+}
+
+.ai-loading-card strong {
+  display: block;
+
+  color: #ffffff;
+}
+
+.ai-loading-card p {
+  margin: 5px 0 0;
+
+  color: #819bb0;
+
+  font-size: 12px;
+}
+
+.ai-empty-card {
+  color: #819bb0;
+
+  text-align: center;
+}
+
+
+/* =====================================================
+   KNOWLEDGE DETAIL OVERLAY
+===================================================== */
+
+.knowledge-detail-overlay {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 10050;
+
+  display: flex;
+
+  justify-content: flex-end;
+
+  background: rgba(0, 0, 0, 0.62);
+
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+
+  animation:
+    knowledgeDetailOverlayIn
+    0.2s ease;
+}
+
+
+/* =====================================================
+   KNOWLEDGE DETAIL PANEL
+===================================================== */
+
+.knowledge-detail-panel {
+  position: relative;
+
+  width: min(560px, 92vw);
+
+  height: 100vh;
+
+  display: flex;
+
+  flex-direction: column;
+
+  overflow: hidden;
+
+  border-left: 1px solid rgba(0, 174, 255, 0.55);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(5, 25, 40, 0.99),
+      rgba(2, 13, 24, 0.99)
+    );
+
+  box-shadow:
+    -20px 0 60px rgba(0, 0, 0, 0.55);
+
+  animation:
+    knowledgeDetailPanelIn
+    0.25s ease;
+}
+
+
+/* =====================================================
+   DETAIL HEADER
+===================================================== */
+
+.knowledge-detail-header {
+  flex-shrink: 0;
+
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+
+  gap: 20px;
+
+  padding: 26px 28px;
+
+  border-bottom: 1px solid rgba(0, 174, 255, 0.2);
+
+  background:
+    rgba(3, 18, 30, 0.97);
+}
+
+.knowledge-detail-label {
+  display: block;
+
+  margin-bottom: 7px;
+
+  color: #ff3157;
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  letter-spacing: 3px;
+}
+
+.knowledge-detail-header h2 {
+  margin: 0;
+
+  color: #ffffff;
+
+  font-size: 22px;
+
+  line-height: 1.25;
+}
+
+.knowledge-detail-close {
+  width: 40px;
+  height: 40px;
+
+  flex-shrink: 0;
+
+  border: 1px solid #ff2148;
+
+  border-radius: 8px;
+
+  color: #ffffff;
+
+  background: transparent;
+
+  font-size: 25px;
+
+  line-height: 1;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.knowledge-detail-close:hover {
+  background: #ff2148;
+
+  transform: translateY(-1px);
+}
+
+
+/* =====================================================
+   DETAIL CONTENT
+===================================================== */
+
+.knowledge-detail-content {
+  flex: 1;
+
+  min-height: 0;
+
+  overflow-y: auto;
+
+  padding: 32px;
+}
+
+.knowledge-detail-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.knowledge-detail-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.knowledge-detail-content::-webkit-scrollbar-thumb {
+  background: #ff2148;
+
+  border-radius: 20px;
+}
+
+.knowledge-detail-content::-webkit-scrollbar-thumb:hover {
+  background: #ff3157;
+}
+
+
+/* =====================================================
+   DETAIL PINNED BADGE
+===================================================== */
+
+.knowledge-detail-pinned {
+  margin-bottom: 13px;
+}
+
+
+/* =====================================================
+   DETAIL TITLE
+===================================================== */
+
+.knowledge-detail-content h1 {
+  margin: 8px 0 15px;
+
+  color: #ffffff;
+
+  font-size: 30px;
+
+  line-height: 1.25;
+
+  font-weight: 700;
+
+  word-break: break-word;
+}
+
+
+/* =====================================================
+   DETAIL QUESTION
+===================================================== */
+
+.knowledge-detail-question {
+  margin-top: 8px;
+
+  padding: 14px 16px;
+
+  border-left: 3px solid #00aeff;
+
+  border-radius: 5px;
+
+  background: rgba(0, 174, 255, 0.06);
+}
+
+.knowledge-detail-question span {
+  display: block;
+
+  margin-bottom: 6px;
+
+  color: #00aeff;
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  letter-spacing: 1.5px;
+
+  text-transform: uppercase;
+}
+
+.knowledge-detail-question p {
+  margin: 0;
+
+  color: #d5e4ef;
+
+  font-size: 14px;
+
+  line-height: 1.65;
+
+  word-break: break-word;
+}
+
+
+/* =====================================================
+   DETAIL DIVIDER
+===================================================== */
+
+.knowledge-detail-divider {
+  width: 100%;
+
+  height: 1px;
+
+  margin: 26px 0;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(0, 174, 255, 0.35),
+      rgba(0, 174, 255, 0.05),
+      transparent
+    );
+}
+
+
+/* =====================================================
+   DETAIL MESSAGE
+===================================================== */
+
+.knowledge-detail-message {
+  color: rgba(255, 255, 255, 0.86);
+
+  font-size: 15px;
+
+  line-height: 1.8;
+
+  white-space: pre-wrap;
+
+  overflow-wrap: anywhere;
+}
+
+
+/* =====================================================
+   DETAIL DATE
+===================================================== */
+
+.knowledge-detail-date {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 5px;
+
+  margin-top: 30px;
+
+  padding-top: 18px;
+
+  border-top: 1px solid rgba(0, 174, 255, 0.14);
+}
+
+.knowledge-detail-date span {
+  color: #718ca5;
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  letter-spacing: 1.2px;
+
+  text-transform: uppercase;
+}
+
+.knowledge-detail-date strong {
+  color: #ff5573;
+
+  font-size: 13px;
+
+  font-weight: 600;
+}
+
+
+/* =====================================================
+   DETAIL PIN INFORMATION
+===================================================== */
+
+.knowledge-detail-pin-info {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 5px;
+
+  margin-top: 18px;
+
+  padding: 15px;
+
+  border: 1px solid rgba(255, 33, 72, 0.22);
+
+  border-radius: 8px;
+
+  background: rgba(255, 33, 72, 0.05);
+}
+
+.knowledge-detail-pin-info span {
+  color: #718ca5;
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  letter-spacing: 1.2px;
+
+  text-transform: uppercase;
+}
+
+.knowledge-detail-pin-info strong {
+  color: #ffffff;
+
+  font-size: 14px;
+}
+
+.knowledge-detail-pin-info small {
+  color: #ff5573;
+
+  font-size: 11px;
+}
+
+
+/* =====================================================
+   DETAIL ACTIONS
+===================================================== */
+
+.knowledge-detail-actions {
+  flex-shrink: 0;
+
+  display: flex;
+
+  gap: 10px;
+
+  padding: 18px 28px;
+
+  border-top: 1px solid rgba(0, 174, 255, 0.2);
+
+  background:
+    rgba(2, 12, 21, 0.98);
+}
+
+.knowledge-detail-actions button {
+  min-width: 100px;
+
+  padding: 10px 17px;
+
+  border-radius: 7px;
+
+  font-size: 12px;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.knowledge-detail-actions
+.knowledge-pin-button {
+  border: 1px solid #008dd1;
+
+  color: #d9f3ff;
+
+  background: transparent;
+}
+
+.knowledge-detail-actions
+.knowledge-pin-button:hover:not(:disabled) {
+  color: #ffffff;
+
+  background: #007dbb;
+}
+
+.knowledge-detail-actions
+.knowledge-unpin-button {
+  border: 1px solid #ff2148;
+
+  color: #ffffff;
+
+  background: rgba(255, 33, 72, 0.1);
+}
+
+.knowledge-detail-actions
+.knowledge-unpin-button:hover:not(:disabled) {
+  background: #ff2148;
+}
+
+.knowledge-detail-actions
+.knowledge-delete-button {
+  border: 1px solid #ff2148;
+
+  color: #ff5272;
+
+  background: transparent;
+}
+
+.knowledge-detail-actions
+.knowledge-delete-button:hover:not(:disabled) {
+  color: #ffffff;
+
+  background: #ff2148;
+}
+
+.knowledge-detail-actions button:disabled {
+  opacity: 0.5;
+
+  cursor: not-allowed;
+}
+
+
+/* =====================================================
+   DETAIL ANIMATIONS
+===================================================== */
+
+@keyframes knowledgeDetailOverlayIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes knowledgeDetailPanelIn {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+
+/* =====================================================
+   AI PIN MODAL
+   Existing modal styling
+===================================================== */
+
+.pin-modal-overlay {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 11000;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 20px;
+
+  background: rgba(0, 0, 0, 0.72);
+
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.pin-modal {
+  width: min(500px, 100%);
+
+  overflow: hidden;
+
+  border: 1px solid #007fc8;
+
+  border-radius: 14px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(5, 25, 40, 0.99),
+      rgba(2, 13, 24, 0.99)
+    );
+
+  box-shadow:
+    0 25px 80px rgba(0, 0, 0, 0.55);
+}
+
+.pin-modal-header {
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+
+  gap: 20px;
+
+  padding: 25px;
+
+  border-bottom: 1px solid rgba(0, 174, 255, 0.18);
+}
+
+.pin-modal-label {
+  display: block;
+
+  margin-bottom: 7px;
+
+  color: #ff3157;
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  letter-spacing: 3px;
+}
+
+.pin-modal-header h2 {
+  margin: 0;
+
+  color: #ffffff;
+
+  font-size: 22px;
+}
+
+.pin-modal-header p {
+  margin: 8px 0 0;
+
+  color: #819bb0;
+
+  font-size: 13px;
+
+  line-height: 1.5;
+}
+
+.pin-modal-close {
+  width: 38px;
+  height: 38px;
+
+  flex-shrink: 0;
+
+  border: 1px solid #ff2148;
+
+  border-radius: 8px;
+
+  color: #ffffff;
+
+  background: transparent;
+
+  font-size: 24px;
+
+  cursor: pointer;
+}
+
+.pin-modal-close:hover {
+  background: #ff2148;
+}
+
+.pin-modal-field {
+  padding: 25px 25px 0;
+}
+
+.pin-modal-field label {
+  display: block;
+
+  margin-bottom: 8px;
+
+  color: #ffffff;
+
+  font-size: 12px;
+
+  font-weight: 700;
+}
+
+.pin-modal-field input {
+  width: 100%;
+
+  padding: 12px 13px;
+
+  border: 1px solid #24516e;
+
+  border-radius: 7px;
+
+  outline: none;
+
+  color: #ffffff;
+
+  background: #071725;
+
+  font-size: 14px;
+}
+
+.pin-modal-field input::placeholder {
+  color: #718ca5;
+}
+
+.pin-modal-field input:focus {
+  border-color: #ff2148;
+}
+
+.pin-modal-actions {
+  display: flex;
+
+  justify-content: flex-end;
+
+  gap: 10px;
+
+  padding: 25px;
+}
+
+.pin-modal-actions button {
+  padding: 10px 17px;
+
+  border-radius: 7px;
+
+  font-size: 12px;
+
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.pin-modal-cancel {
+  border: 1px solid #24516e;
+
+  color: #a9bdcd;
+
+  background: transparent;
+}
+
+.pin-modal-cancel:hover:not(:disabled) {
+  color: #ffffff;
+
+  border-color: #4c718b;
+}
+
+.pin-modal-save {
+  border: 1px solid #ff2148;
+
+  color: #ffffff;
+
+  background: #ff2148;
+}
+
+.pin-modal-save:hover:not(:disabled) {
+  background: #e91840;
+}
+
+.pin-modal-actions button:disabled {
+  opacity: 0.5;
+
+  cursor: not-allowed;
+}
+
+
+/* =====================================================
+   MOBILE
+===================================================== */
+
+@media (max-width: 700px) {
+  .knowledge-overlay {
+    padding: 12px;
+  }
+
+  .knowledge-panel {
+    padding: 20px;
+
+    max-height: 94vh;
+  }
+
+  .knowledge-sticky-top {
+    top: -20px;
+    margin: -20px -20px 18px;
+    padding: 20px 20px 12px;
+  }
+
+  .knowledge-search {
+    grid-template-columns: 1fr;
+  }
+
+  .knowledge-search-button {
+    height: 45px;
+  }
+
+  .knowledge-header h1 {
+    font-size: 27px;
+  }
+
+  .knowledge-card-actions {
+    flex-wrap: wrap;
+  }
+
+  /* DETAIL */
+
+  .knowledge-detail-panel {
+    width: 100%;
+  }
+
+  .knowledge-detail-header {
+    padding: 21px;
+  }
+
+  .knowledge-detail-content {
+    padding: 24px;
+  }
+
+  .knowledge-detail-content h1 {
+    font-size: 25px;
+  }
+
+  .knowledge-detail-message {
+    font-size: 14px;
+
+    line-height: 1.7;
+  }
+
+  .knowledge-detail-actions {
+    padding: 16px 21px;
+  }
+
+  .knowledge-detail-actions button {
+    flex: 1;
+
+    min-width: 0;
+  }
+
+  .pin-modal-header {
+    padding: 21px;
+  }
+
+  .pin-modal-field {
+    padding: 21px 21px 0;
+  }
+
+  .pin-modal-actions {
+    padding: 21px;
+  }
+}
+
+
+/* =====================================================
+   SMALL MOBILE
+===================================================== */
+
+@media (max-width: 430px) {
+  .knowledge-panel {
+    padding: 16px;
+  }
+
+  .knowledge-sticky-top {
+    top: -16px;
+    margin: -16px -16px 16px;
+    padding: 16px 16px 10px;
+  }
+
+  .knowledge-header {
+    gap: 12px;
+  }
+
+  .knowledge-label {
+    letter-spacing: 3px;
+  }
+
+  .knowledge-header h1 {
+    font-size: 24px;
+  }
+
+  .knowledge-section-label {
+    letter-spacing: 3px;
+  }
+
+  .knowledge-section-header h2 {
+    font-size: 20px;
+  }
+
+  .knowledge-card {
+    padding: 15px;
+  }
+
+  .knowledge-detail-header {
+    padding: 18px;
+  }
+
+  .knowledge-detail-content {
+    padding: 20px;
+  }
+
+  .knowledge-detail-content h1 {
+    font-size: 23px;
+  }
+
+  .knowledge-detail-actions {
+    padding: 14px 18px;
+  }
+}
