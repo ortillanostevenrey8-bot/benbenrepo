@@ -4,11 +4,10 @@ This React app stores announcements and knowledge entries in Cloud Firestore.
 
 ## Connect Firebase
 
-1. In the [Firebase Console](https://console.firebase.google.com/), create or open the `knowledge-announcement` project.
-2. Open **Project settings**, add a **Web app**, and copy its configuration values.
-3. In this project folder, copy `.env.example` to `.env.local` and replace every placeholder with the values from Firebase.
-4. In Firebase Console, open **Build > Firestore Database**, create a database, and choose a location.
-5. Start the app with `npm start`. The app creates the `announcements` and `knowledge` collections when the first entry is added.
+1. In the [Firebase Console](https://console.firebase.google.com/), open the `knowledge-announcement` project.
+2. Check that the Firebase web-app configuration in `src/pages/firebase/firebase.js` matches that project. These web-app values are public identifiers, not Gemini secrets.
+3. In Firebase Console, open **Build > Firestore Database**, create a database, and choose a location.
+4. Start the app with `npm start`. The app creates the `announcements` and `knowledge` collections when the first entry is added.
 
 ## GitHub Pages
 
@@ -16,7 +15,7 @@ Push changes to the `main` branch to build and deploy the site with the GitHub A
 
 For Firebase Authentication to work on the deployed site, add `ortillanostevenrey8-bot.github.io` to **Authentication > Settings > Authorized domains** in Firebase Console. Deploy the Firestore rules in `firestore.rules` before allowing users to access the database.
 
-The AI assistant requires `REACT_APP_GEMINI_API_KEY`. Create React App embeds `REACT_APP_*` values in public browser JavaScript, so do not put a private Gemini key in a GitHub Actions variable or commit it in an environment file. Use a server-side function as a protected proxy before enabling the assistant publicly.
+The AI assistant calls a Firebase callable function. Its Gemini key is stored as a Firebase Functions secret and is never included in the website bundle. The AI does not read a Gemini key or model from `.env`; do not add a Gemini key to `.env`, `.env.local`, or GitHub Actions variables.
 
 The Firebase web configuration is safe to include in a browser bundle, but Firestore security rules still protect the data. For a private internal app while testing, use:
 
@@ -35,14 +34,29 @@ This denies all browser access, so use authenticated rules before deploying. Do 
 
 ## Deploy Firebase Functions
 
-Deleting another user's account requires the Firebase Admin SDK and must run on the server. Install the function dependencies and deploy the callable function from this project directory:
+The WALASTIK AI function requires a Gemini API key stored as a Firebase secret. From this project directory, sign in to the Firebase CLI, select the `knowledge-announcement` project, save the key when prompted, and deploy the function:
 
 ```powershell
+firebase login
+firebase use knowledge-announcement
+firebase functions:secrets:set GEMINI_API_KEY
 npm install --prefix functions
+firebase deploy --only functions:askWalastikAI
+```
+
+`firebase functions:secrets:set` prompts for the key; do not paste it into a source file or commit it. Cloud Functions may require the Firebase project to use the Blaze billing plan. The callable requires a signed-in user.
+
+Deleting another user's account also requires the Firebase Admin SDK and must run on the server. Deploy that callable from this project directory:
+
+```powershell
 firebase deploy --only functions:deleteUserAccount
 ```
 
-The deployer must be signed in to the Firebase CLI and have permission to deploy Cloud Functions. Cloud Functions may require the Firebase project to use the Blaze billing plan. The callable verifies the signed-in administrator, deletes the target's Authentication account, and cleans up their user profile, username index, and profile picture. Deploy this function before using **Delete account** in the admin user list.
+The callable verifies the signed-in administrator, deletes the target's Authentication account, and cleans up their user profile, username index, and profile picture. Deploy this function before using **Delete account** in the admin user list.
+
+## Publish the website
+
+The GitHub Pages workflow builds from the `main` branch. After deploying the AI function, commit and push the updated website source to `main`, then confirm the **Deploy React App to GitHub Pages** workflow completes successfully. Reload the site after deployment; if the old “Gemini API key is missing” message remains, the old frontend bundle is still being served.
 
 ## Available Scripts
 

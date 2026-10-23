@@ -118,6 +118,7 @@ function InformationCenter({ currentUser, account, onSignOut, onDeleteAccount, o
   const [createAdminError, setCreateAdminError] = useState("");
   const [announcementLoading, setAnnouncementLoading] =
     useState(true);
+  const hasLoadedAnnouncementsRef = useRef(false);
 
   const [announcementTitle, setAnnouncementTitle] =
     useState("");
@@ -451,6 +452,8 @@ function InformationCenter({ currentUser, account, onSignOut, onDeleteAccount, o
   ======================================================= */
 
   useEffect(() => {
+    hasLoadedAnnouncementsRef.current = false;
+
     const announcementsRef = collection(
       db,
       "announcements"
@@ -459,6 +462,23 @@ function InformationCenter({ currentUser, account, onSignOut, onDeleteAccount, o
     const unsubscribe = onSnapshot(
       announcementsRef,
       (snapshot) => {
+        if (!snapshot.metadata.fromCache) {
+          if (
+            hasLoadedAnnouncementsRef.current &&
+            account?.role !== "admin"
+          ) {
+            snapshot.docChanges().forEach((change) => {
+              if (change.type === "added") {
+                const title =
+                  change.doc.data()?.title || "An announcement";
+                showToast(`New announcement: ${title}`);
+              }
+            });
+          }
+
+          hasLoadedAnnouncementsRef.current = true;
+        }
+
         const data = snapshot.docs.map((item) => ({
           id: item.id,
           ...item.data(),
@@ -498,7 +518,7 @@ function InformationCenter({ currentUser, account, onSignOut, onDeleteAccount, o
     );
 
     return unsubscribe;
-  }, []);
+  }, [account?.role]);
 
   useEffect(() => {
     if (account?.role !== "admin") return undefined;
