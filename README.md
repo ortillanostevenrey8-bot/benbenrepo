@@ -15,7 +15,9 @@ Push changes to the `main` branch to build and deploy the site with the GitHub A
 
 For Firebase Authentication to work on the deployed site, add `ortillanostevenrey8-bot.github.io` to **Authentication > Settings > Authorized domains** in Firebase Console. Deploy the Firestore rules in `firestore.rules` before allowing users to access the database.
 
-The AI assistant calls a Firebase callable function. Its Gemini key is stored as a Firebase Functions secret and is never included in the website bundle. The AI does not read a Gemini key or model from `.env`; do not add a Gemini key to `.env`, `.env.local`, or GitHub Actions variables.
+The Knowledge panel searches a small, source-linked index based on the official Walastik About, branches, and troubleshooting pages. It returns published information directly instead of generating answers, so it does not need a Gemini API key, Firebase Cloud Functions, or a billing-plan upgrade. When a question does not match the indexed information, the panel directs users to the official site or customer support rather than guessing.
+
+The index is included in the website bundle and is not fetched live from Walastik's site. Update `src/Services/walastikWebsiteSearch.js` when those source pages change. Each result links to the source page so users can confirm current details.
 
 The Firebase web configuration is safe to include in a browser bundle, but Firestore security rules still protect the data. For a private internal app while testing, use:
 
@@ -34,29 +36,19 @@ This denies all browser access, so use authenticated rules before deploying. Do 
 
 ## Deploy Firebase Functions
 
-The WALASTIK AI function requires a Gemini API key stored as a Firebase secret. From this project directory, sign in to the Firebase CLI, select the `knowledge-announcement` project, save the key when prompted, and deploy the function:
+Account deletion uses a Firebase callable function and requires Cloud Functions. The Knowledge panel's official website search does not use that function. If you need to deploy the account-deletion function, run:
 
 ```powershell
 firebase login
-firebase use knowledge-announcement
-firebase functions:secrets:set GEMINI_API_KEY
 npm install --prefix functions
-firebase deploy --only functions:askWalastikAI
+firebase deploy --only functions:deleteUserAccount --project knowledge-announcement
 ```
 
-`firebase functions:secrets:set` prompts for the key; do not paste it into a source file or commit it. Cloud Functions may require the Firebase project to use the Blaze billing plan. The callable requires a signed-in user.
-
-Deleting another user's account also requires the Firebase Admin SDK and must run on the server. Deploy that callable from this project directory:
-
-```powershell
-firebase deploy --only functions:deleteUserAccount
-```
-
-The callable verifies the signed-in administrator, deletes the target's Authentication account, and cleans up their user profile, username index, and profile picture. Deploy this function before using **Delete account** in the admin user list.
+Cloud Functions may require the Firebase project to use the Blaze billing plan. The callable verifies the signed-in administrator, deletes the target's Authentication account, and cleans up their user profile, username index, and profile picture. Deploy this function before using **Delete account** in the admin user list.
 
 ## Publish the website
 
-The GitHub Pages workflow builds from the `main` branch. After deploying the AI function, commit and push the updated website source to `main`, then confirm the **Deploy React App to GitHub Pages** workflow completes successfully. Reload the site after deployment; if the old “Gemini API key is missing” message remains, the old frontend bundle is still being served.
+The GitHub Pages workflow builds from the `main` branch. Commit and push website changes to `main`, then confirm the **Deploy React App to GitHub Pages** workflow completes successfully. The official website search needs no AI-function or Gemini-key deployment.
 
 ## Available Scripts
 

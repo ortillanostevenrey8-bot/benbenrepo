@@ -13,26 +13,18 @@ import {
   onSnapshot,
   serverTimestamp,
 } from "firebase/firestore";
-import { getFunctions, httpsCallable } from "firebase/functions";
 
-import { auth, db } from "../pages/firebase/firebase";
+import { db } from "../pages/firebase/firebase";
 import ConfirmDialog from "./ConfirmDialog";
+import { searchWalastikWebsite } from "../Services/walastikWebsiteSearch";
 import "./KnowledgePanel.css";
-
-const askWalastikAICall = httpsCallable(
-  getFunctions(auth.app),
-  "askWalastikAI"
-);
 
 const WALASTIK_SOURCE_URLS = [
   "https://walastik.bfdenterprises.com/",
-  "https://walastik.bfdenterprises.com/about/",
-  "https://walastik.bfdenterprises.com/support/",
-  "https://walastik.bfdenterprises.com/troubleshoot/",
+  "https://walastik.bfdenterprises.com/about",
+  "https://walastik.bfdenterprises.com/branches",
+  "https://walastik.bfdenterprises.com/troubleshoot",
 ];
-
-const isWithinWalastikScope = (question) =>
-  /\b(internet|wi[ -]?fi|network|networking|router|modem|broadband|fiber|fibre|optic|ethernet|lan|wan|ip address|dns|dhcp|subnet|firewall|port forwarding|bandwidth|ping|latency|packet|signal|isp|computer|kompyuter|pc\b|cpu|gpu|ram|laptop|desktop|hardware|software|server|motherboard|operating system|windows|linux|macos|ssd|hdd|printer|monitor|cable|connection|connectivity|speed ?test|troubleshoot(?:ing)?|online|web|telecom|coverage|subscription|installation|walastik|net\b|koneksyon|bilis|mabagal|wifi|plan)\b/i.test(question);
 
 export default function KnowledgePanel({
   isAdmin = false,
@@ -67,7 +59,8 @@ export default function KnowledgePanel({
 
   const [aiQuestion, setAiQuestion] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiScopeNotice, setAiScopeNotice] = useState("");
+  const [aiError, setAiError] = useState("");
+  const [privateWebsiteResults, setPrivateWebsiteResults] = useState([]);
 
   /* =========================================================
      ADD KNOWLEDGE
@@ -370,12 +363,7 @@ export default function KnowledgePanel({
     };
 
   /* =========================================================
-     GEMINI AI SEARCH
-
-     IMPORTANT:
-     Every search is saved as a NEW Firestore document.
-
-     Old searches are NOT replaced.
+     OFFICIAL WEBSITE SEARCH
   ========================================================= */
 
   const askAI = async () => {
@@ -389,118 +377,40 @@ export default function KnowledgePanel({
       return;
     }
 
-    setAiScopeNotice("");
-    if (!isWithinWalastikScope(question)) {
-      setAiScopeNotice("WALASTIK AI answers questions about internet, networks, computers, and Walastik Internet services only.");
-      return;
-    }
+    setAiError("");
 
     try {
       setAiLoading(true);
-
-      const commonTerms = new Set([
-        "about", "after", "are", "can", "does", "for", "from", "have",
-        "help", "how", "into", "that", "the", "their", "them", "there",
-        "this", "was", "what", "when", "where", "which", "who", "with",
-        "would", "you", "your",
-      ]);
-      const questionTerms = (question.toLowerCase().match(/[a-z0-9]{3,}/g) || [])
-        .filter((term) => !commonTerms.has(term));
-      const companyReferences = knowledge
-        .filter((item) => item.source !== "ai")
-        .map((item) => {
-          const title = String(item.title || item.name || "Untitled").trim();
-          const body = String(
-            item.details || item.content || item.description || item.answer || ""
-          ).trim();
-          const searchable = `${title} ${body}`.toLowerCase();
-          const relevance = questionTerms.reduce(
-            (score, term) =>
-              score + (title.toLowerCase().includes(term) ? 3 : searchable.includes(term) ? 1 : 0),
-            0
-          );
-
-          return { title, body, relevance };
-        })
-        .filter((item) => item.relevance > 0 && item.body)
-        .sort((a, b) => b.relevance - a.relevance)
-        .slice(0, 5)
-        .map((item, index) =>
-          `REFERENCE ${index + 1}\nTitle: ${item.title}\nDetails: ${item.body.slice(0, 1800)}`
+      const websiteMatches = searchWalastikWebsite(question);
+      if (websiteMatches.length === 0) {
+        setAiError(
+          "I couldn't find that information on the official Walastik pages indexed here. Check the website directly or contact support@bfdenterprises.com."
         );
+        return;
+      }
 
-      const { data } = await askWalastikAICall({
-        question,
-        references: companyReferences,
-      });
-      const finalAnswer = data.answer;
-
-      /* ==============================================
-         SAVE EVERY SEARCH AS NEW AI KNOWLEDGE
-
-         THIS IS THE IMPORTANT PART.
-
-         We DO NOT update the previous AI answer.
-         We create a NEW document every time.
-      ============================================== */
-
-      await addDoc(
-        collection(
-          db,
-          "knowledge"
-        ),
-        {
-          title:
-            question,
-
-          answer:
-            finalAnswer,
-
-          details:
-            finalAnswer,
-
-          question:
-            question,
-
-          source:
-            "ai",
-
-          sourceUrls:
-            WALASTIK_SOURCE_URLS,
-
+      setPrivateWebsiteResults((results) => [
+        ...websiteMatches.map((match, index) => ({
+          id: `website-${Date.now()}-${index}`,
+          title: match.title,
+          answer: match.details,
+          details: match.details,
+          question,
+          source: "ai",
+          sourceType: "website",
+          sourceUrls: match.sourceUrls,
           pinned: false,
-
           pinnedBy: "",
-
           pinnedAt: null,
-
-          createdAt:
-            serverTimestamp(),
-        }
-      );
-
-      /* ==============================================
-         CLEAR SEARCH BOX AFTER SUCCESS
-
-         The new result will appear from
-         the Firestore listener.
-      ============================================== */
-
+          createdAt: new Date(),
+          privateResult: true,
+        })),
+        ...results,
+      ]);
       setAiQuestion("");
     } catch (error) {
-      console.error(
-        "AI error:",
-        error
-      );
-
-      /* Save the error as a visible result
-         so the user knows what happened. */
-
-      setAiQuestion("");
-
-      alert(
-        `Unable to get an AI answer right now.\n\n${error.message}`
-      );
+      console.error("Official website search error:", error);
+      setAiError("The official website search failed. Please try again.");
     } finally {
       setAiLoading(false);
     }
@@ -569,24 +479,34 @@ export default function KnowledgePanel({
         selectedAIForPin.id
       );
 
-      await updateDoc(
-        doc(
-          db,
-          "knowledge",
-          selectedAIForPin.id
-        ),
-        {
-          pinned: true,
-
-          pinnedBy:
-            aiPinnerName.trim(),
-
-          pinnedAt:
-            serverTimestamp(),
-
+      if (selectedAIForPin.privateResult) {
+        await addDoc(collection(db, "knowledge"), {
+          title: selectedAIForPin.question,
+          answer: selectedAIForPin.answer,
+          details: selectedAIForPin.details,
+          question: selectedAIForPin.question,
           source: "ai",
-        }
-      );
+          sourceType: selectedAIForPin.sourceType,
+          sourceUrls: selectedAIForPin.sourceUrls,
+          pinned: true,
+          pinnedBy: aiPinnerName.trim(),
+          pinnedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+        });
+        setPrivateWebsiteResults((results) =>
+          results.filter((item) => item.id !== selectedAIForPin.id)
+        );
+      } else {
+        await updateDoc(
+          doc(db, "knowledge", selectedAIForPin.id),
+          {
+            pinned: true,
+            pinnedBy: aiPinnerName.trim(),
+            pinnedAt: serverTimestamp(),
+            source: "ai",
+          }
+        );
+      }
 
       setShowAIPinModal(false);
       setAIPinnerName("");
@@ -714,17 +634,15 @@ export default function KnowledgePanel({
     ]);
 
   /* =========================================================
-     ALL AI RESEARCH
-
-     Every question searched is kept here.
+     OFFICIAL WEBSITE RESULTS AND PINNED ANSWERS
   ========================================================= */
 
   const aiResearch =
     useMemo(() => {
-      return knowledge
+      const pinnedResults = knowledge
         .filter(
           (item) =>
-            item.source === "ai"
+            item.source === "ai" && item.pinned
         )
         .sort((a, b) => {
           const aTime =
@@ -737,7 +655,9 @@ export default function KnowledgePanel({
 
           return bTime - aTime;
         });
-    }, [knowledge]);
+
+      return [...privateWebsiteResults, ...pinnedResults];
+    }, [knowledge, privateWebsiteResults]);
 
   /* =========================================================
      RENDER
@@ -880,7 +800,7 @@ export default function KnowledgePanel({
           <div className="knowledge-divider" />
 
           {/* =================================================
-              AI RESEARCH ENGINE
+              OFFICIAL WEBSITE SEARCH
           ================================================= */}
 
           <section className="knowledge-section">
@@ -888,16 +808,15 @@ export default function KnowledgePanel({
             <div className="knowledge-section-header">
               <div>
                 <span className="knowledge-section-label">
-                  WALASTIK AI SEARCH
+                  OFFICIAL WALASTIK WEBSITE
                 </span>
 
                 <h2>
-                  Search with WALASTIK AI
+                  Search official Walastik information
                 </h2>
 
                 <p>
-                  Ask a question to find information
-                  across your company knowledge.
+                  Search verified information and guides from the official Walastik website.
                 </p>
               </div>
             </div>
@@ -908,7 +827,7 @@ export default function KnowledgePanel({
               <div className="knowledge-search-input">
                 <input
                   type="text"
-                  placeholder="Ask WALASTIK AI a question..."
+                  placeholder="Search Walastik company info, branches, or support guides..."
                   value={aiQuestion}
                   onChange={(event) =>
                     setAiQuestion(
@@ -938,14 +857,14 @@ export default function KnowledgePanel({
                 }
               >
                 {aiLoading
-                  ? "Researching..."
-                  : "Search WALASTIK AI"}
+                  ? "Searching..."
+                  : "Search official website"}
               </button>
             </div>
 
-            {aiScopeNotice && (
-              <p className="ai-scope-notice" role="status">
-                {aiScopeNotice}
+            {aiError && (
+              <p className="ai-scope-notice" role="alert">
+                {aiError}
               </p>
             )}
 
@@ -961,19 +880,18 @@ export default function KnowledgePanel({
 
                 <div>
                   <strong>
-                    Researching...
+                    Searching...
                   </strong>
 
                   <p>
-                    WALASTIK AI is generating
-                    your answer.
+                    the official Walastik pages.
                   </p>
                 </div>
               </div>
             )}
 
             {/* =================================================
-                AI RESEARCH HISTORY
+                WEBSITE RESULTS
             ================================================= */}
 
             {!aiLoading &&
@@ -1020,13 +938,15 @@ export default function KnowledgePanel({
                             <span className="knowledge-pinned-badge">
                               {item.pinned
                                 ? "PINNED"
-                                : "AI RESEARCH"}
+                                : item.sourceType === "website"
+                                  ? "OFFICIAL WEBSITE"
+                                  : "AI RESEARCH"}
                             </span>
 
                             <h3>
-                              {item.question ||
-                                item.title ||
-                                "AI Knowledge"}
+                              {item.sourceType === "website"
+                                ? item.title
+                                : item.question || item.title || "AI Knowledge"}
                             </h3>
 
                           </div>
@@ -1042,7 +962,7 @@ export default function KnowledgePanel({
                         <div className="ai-source-links" onClick={(event) => event.stopPropagation()}>
                           <span>Official Walastik sources:</span>
                           {(item.sourceUrls || WALASTIK_SOURCE_URLS).map((url) => {
-                            const sourceName = url.includes("/about") ? "About" : url.includes("/support") ? "Support" : url.includes("/troubleshoot") ? "Troubleshooting" : "Walastik Internet";
+                            const sourceName = url.includes("/about") ? "About" : url.includes("/branches") ? "Branches" : url.includes("/troubleshoot") ? "Troubleshooting" : "Walastik Internet";
                             return <a href={url} key={url} target="_blank" rel="noreferrer">{sourceName}</a>;
                           })}
                         </div>
@@ -1051,7 +971,7 @@ export default function KnowledgePanel({
 
                         {item.createdAt && (
                           <div className="knowledge-card-date">
-                            Researched:{" "}
+                            Matched:{" "}
                             <strong>
                               {formatDate(
                                 item.createdAt
@@ -1116,7 +1036,13 @@ export default function KnowledgePanel({
                             disabled={deletingId === item.id}
                             onClick={(event) => {
                               event.stopPropagation();
-                              handleDeleteKnowledge(item);
+                              if (item.privateResult) {
+                                setPrivateWebsiteResults((results) =>
+                                  results.filter((result) => result.id !== item.id)
+                                );
+                              } else {
+                                handleDeleteKnowledge(item);
+                              }
                             }}
                           >
                             {deletingId === item.id
@@ -1451,11 +1377,11 @@ export default function KnowledgePanel({
                   "No details available."}
               </div>
 
-              {selectedKnowledge.source === "ai" && (
+              {(selectedKnowledge.source === "ai" || selectedKnowledge.sourceType === "website") && (
                 <div className="ai-source-links ai-detail-source-links">
                   <span>Official Walastik sources:</span>
                   {(selectedKnowledge.sourceUrls || WALASTIK_SOURCE_URLS).map((url) => {
-                    const sourceName = url.includes("/about") ? "About" : url.includes("/support") ? "Support" : url.includes("/troubleshoot") ? "Troubleshooting" : "Walastik Internet";
+                    const sourceName = url.includes("/about") ? "About" : url.includes("/branches") ? "Branches" : url.includes("/troubleshoot") ? "Troubleshooting" : "Walastik Internet";
                     return <a href={url} key={url} target="_blank" rel="noreferrer">{sourceName}</a>;
                   })}
                 </div>
@@ -1465,7 +1391,7 @@ export default function KnowledgePanel({
                 <div className="knowledge-detail-date">
 
                   <span>
-                    Researched / Created
+                    Matched / Created
                   </span>
 
                   <strong>
