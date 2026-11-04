@@ -1,0 +1,509 @@
+/* =========================================
+   ANNOUNCEMENT OVERLAY
+========================================= */
+
+.announcement-overlay {
+  position: fixed;
+  inset: 0;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 25px;
+
+  background: rgba(0, 0, 0, 0.78);
+
+  backdrop-filter: blur(7px);
+
+  z-index: 9999;
+}
+
+
+/* =========================================
+   MODAL
+========================================= */
+
+.announcement-modal {
+  width: min(1050px, 100%);
+
+  max-height: 90vh;
+
+  overflow-y: auto;
+
+  padding: 35px;
+
+  background: #242e3b;
+
+  border: 1px solid #3a4b60;
+  border-top: 2px solid #ef0909;
+
+  border-radius: 18px;
+
+  color: #e8edf5;
+
+  box-shadow:
+    0 25px 80px rgba(0, 0, 0, 0.65);
+}
+
+
+/* =========================================
+   SCROLLBAR
+========================================= */
+
+.announcement-modal::-webkit-scrollbar {
+  width: 9px;
+}
+
+.announcement-modal::-webkit-scrollbar-track {
+  background: #18212c;
+}
+
+.announcement-modal::-webkit-scrollbar-thumb {
+  background: #e50909;
+  border-radius: 10px;
+}
+
+
+/* =========================================
+   HEADER
+========================================= */
+
+.announcement-modal-header {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: flex-start;
+
+  gap: 20px;
+
+  margin-bottom: 25px;
+}
+
+.modal-label {
+  color: #f0a7a7;
+
+  font-size: 11px;
+
+  font-weight: 800;
+
+  letter-spacing: 6px;
+
+  margin-bottom: 18px;
+}
+
+.announcement-modal-header h1 {
+  margin: 0;
+
+  font-size: 38px;
+
+  color: #f4f6f8;
+}
+
+.announcement-modal-header p {
+  margin-top: 12px;
+
+  color: #b7c0cc;
+
+  font-size: 16px;
+}
+
+.modal-close {
+  border: none;
+
+  background: transparent;
+
+  color: #dce4ee;
+
+  font-size: 42px;
+
+  cursor: pointer;
+}
+
+
+/* =========================================
+   ADD BUTTON
+========================================= */
+
+.announcement-add-button {
+  padding: 13px 22px;
+
+  margin-bottom: 20px;
+
+  border: 1px solid #e50909;
+
+  border-radius: 9px;
+
+  background: #202936;
+
+  color: white;
+
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.announcement-add-button:hover {
+  background: #e50909;
+}
+
+
+/* =========================================
+   FORM
+========================================= */
+
+.announcement-form {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 13px;
+
+  padding: 22px;
+
+  margin-bottom: 22px;
+
+  background: #1c2530;
+
+  border: 1px solid #3b4a5d;
+
+  border-radius: 12px;
+}
+
+.announcement-form h3 {
+  margin: 0 0 5px;
+}
+
+.announcement-form input,
+.announcement-form textarea {
+  width: 100%;
+
+  box-sizing: border-box;
+
+  padding: 14px;
+
+  background: #141c25;
+
+  border: 1px solid #425267;
+
+  border-radius: 8px;
+
+  color: white;
+
+  outline: none;
+
+  font-size: 15px;
+}
+
+.announcement-form input:focus,
+.announcement-form textarea:focus {
+  border-color: #e50909;
+}
+
+.announcement-form textarea {
+  min-height: 120px;
+
+  resize: vertical;
+}
+
+.announcement-form button {
+  align-self: flex-start;
+
+  padding: 12px 22px;
+
+  border: none;
+
+  border-radius: 8px;
+
+  background: #e50909;
+
+  color: white;
+
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+
+/* =========================================
+   PIN NAME
+========================================= */
+
+.announcement-pin-name {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 9px;
+
+  padding: 18px;
+
+  margin-bottom: 25px;
+
+  background: #202936;
+
+  border: 1px solid #344356;
+
+  border-radius: 10px;
+}
+
+.announcement-pin-name label {
+  color: #d7dee8;
+
+  font-weight: 600;
+}
+
+.announcement-pin-name input {
+  width: 100%;
+
+  box-sizing: border-box;
+
+  padding: 13px;
+
+  background: #141c25;
+
+  border: 1px solid #425267;
+
+  border-radius: 8px;
+
+  color: white;
+
+  outline: none;
+}
+
+
+/* =========================================
+   RESULTS TITLE
+========================================= */
+
+.announcement-results-title {
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  margin-bottom: 15px;
+
+  font-size: 16px;
+
+  font-weight: 800;
+}
+
+.announcement-results-title small {
+  color: #98a4b3;
+
+  font-size: 13px;
+
+  font-weight: 500;
+}
+
+
+/* =========================================
+   LIST
+========================================= */
+
+.announcement-results-list {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 14px;
+
+  max-height: 550px;
+
+  overflow-y: auto;
+
+  padding-right: 10px;
+}
+
+.announcement-results-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.announcement-results-list::-webkit-scrollbar-track {
+  background: #18212c;
+}
+
+.announcement-results-list::-webkit-scrollbar-thumb {
+  background: #e50909;
+
+  border-radius: 10px;
+}
+
+
+/* =========================================
+   ANNOUNCEMENT CARD
+========================================= */
+
+.modal-announcement-card {
+  padding: 20px;
+
+  background: #1b2530;
+
+  border: 1px solid #39495d;
+
+  border-radius: 12px;
+}
+
+.modal-pinned-card {
+  border-left: 4px solid #e50909;
+}
+
+.modal-announcement-top {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: flex-start;
+
+  gap: 15px;
+}
+
+.modal-announcement-top h3 {
+  margin: 0 0 8px;
+
+  color: white;
+}
+
+.modal-pinned-label {
+  color: #ffb0b0;
+
+  font-size: 12px;
+
+  font-weight: 800;
+}
+
+.announcement-card-actions {
+  display: flex;
+
+  gap: 8px;
+}
+
+.modal-pin-button {
+  padding: 8px 13px;
+
+  border: 1px solid #e50909;
+
+  border-radius: 7px;
+
+  background: transparent;
+
+  color: #ffb0b0;
+
+  cursor: pointer;
+
+  font-weight: 700;
+}
+
+.modal-pin-button:hover {
+  background: #e50909;
+
+  color: white;
+}
+
+.modal-delete-button {
+  width: 38px;
+
+  border: 1px solid #465467;
+
+  border-radius: 7px;
+
+  background: transparent;
+
+  color: #aeb7c2;
+
+  cursor: pointer;
+}
+
+.modal-delete-button:hover {
+  background: #e50909;
+
+  border-color: #e50909;
+
+  color: white;
+}
+
+
+/* =========================================
+   DESCRIPTION
+========================================= */
+
+.modal-announcement-description {
+  margin: 16px 0;
+
+  color: #c0c8d2;
+
+  line-height: 1.7;
+
+  white-space: pre-wrap;
+}
+
+
+/* =========================================
+   FOOTER
+========================================= */
+
+.modal-announcement-footer {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 12px 20px;
+
+  padding-top: 14px;
+
+  border-top: 1px solid #344254;
+
+  color: #92a0b0;
+
+  font-size: 13px;
+}
+
+.modal-pinned-info {
+  color: #f1a1a1;
+}
+
+.modal-pinned-info strong {
+  color: white;
+}
+
+
+/* =========================================
+   EMPTY
+========================================= */
+
+.modal-empty-state {
+  padding: 45px 20px;
+
+  text-align: center;
+
+  color: #94a0ae;
+
+  border: 1px dashed #3b4a5d;
+
+  border-radius: 12px;
+}
+
+
+@media (max-width: 700px) {
+
+  .announcement-overlay {
+    padding: 10px;
+  }
+
+  .announcement-modal {
+    padding: 20px;
+    max-height: 95vh;
+  }
+
+  .announcement-modal-header h1 {
+    font-size: 28px;
+  }
+
+  .modal-announcement-top {
+    flex-direction: column;
+  }
+
+}
