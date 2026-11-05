@@ -37,7 +37,7 @@ service cloud.firestore {
         && request.resource.data.uploadedBy == request.auth.uid
         && request.resource.data.sizeBytes is int
         && request.resource.data.sizeBytes > 0
-        && request.resource.data.sizeBytes <= 10485760
+        && request.resource.data.sizeBytes <= 104857600
         && request.resource.data.contentType in [
           'application/pdf', 'text/plain', 'text/markdown', 'text/csv'
         ]
