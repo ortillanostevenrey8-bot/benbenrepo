@@ -3,3 +3,10 @@
 // expect(element).toHaveTextContent(/react/i)
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
+
+jest.mock('react-markdown', () => {
+  const React = require('react');
+  return function MockReactMarkdown({ children }) {
+    return React.createElement('div', null, children);
+  };
+});

@@ -972,6 +972,14 @@ function InformationCenter({ currentUser, account, onSignOut, onDeleteAccount, o
     [knowledge]
   );
 
+  const visibleKnowledge = useMemo(
+    () =>
+      knowledge.filter(
+        (item) => item.source !== "ai" || item.pinned
+      ),
+    [knowledge]
+  );
+
   /* =======================================================
      PINNED DATA
   ======================================================= */
@@ -1138,7 +1146,7 @@ function InformationCenter({ currentUser, account, onSignOut, onDeleteAccount, o
             announcements.length
           }
           knowledgeArticles={
-            knowledge.length
+            visibleKnowledge.length
           }
           pinnedMessages={
             totalPinned
@@ -1391,58 +1399,60 @@ function InformationCenter({ currentUser, account, onSignOut, onDeleteAccount, o
 
                       </div>
 
-                      <div className="announcement-actions">
+                      {account?.role === "admin" && (
+                        <div className="announcement-actions">
 
-                        <button
-                          type="button"
-                          className={
-                            announcement.pinned
-                              ? "unpin-button"
-                              : "pin-button"
-                          }
-                          onClick={(event) => {
-                            event.stopPropagation();
-
-                            if (
+                          <button
+                            type="button"
+                            className={
                               announcement.pinned
-                            ) {
-                              handleUnpin(
-                                announcement
-                              );
-                            } else {
-                              handlePinClick(
-                                announcement
-                              );
+                                ? "unpin-button"
+                                : "pin-button"
                             }
-                          }}
-                        >
-                          {announcement.pinned
-                            ? "Unpin"
-                            : "Pin"}
-                        </button>
+                            onClick={(event) => {
+                              event.stopPropagation();
 
-                        <button
-                          type="button"
-                          className="delete-button"
-                          onClick={(event) => {
-                            event.stopPropagation();
+                              if (
+                                announcement.pinned
+                              ) {
+                                handleUnpin(
+                                  announcement
+                                );
+                              } else {
+                                handlePinClick(
+                                  announcement
+                                );
+                              }
+                            }}
+                          >
+                            {announcement.pinned
+                              ? "Unpin"
+                              : "Pin"}
+                          </button>
 
-                            handleDeleteAnnouncement(
+                          <button
+                            type="button"
+                            className="delete-button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+
+                              handleDeleteAnnouncement(
+                                announcement.id
+                              );
+                            }}
+                            disabled={
+                              deletingAnnouncementId ===
                               announcement.id
-                            );
-                          }}
-                          disabled={
-                            deletingAnnouncementId ===
+                            }
+                          >
+                            {deletingAnnouncementId ===
                             announcement.id
-                          }
-                        >
-                          {deletingAnnouncementId ===
-                          announcement.id
-                            ? "Deleting..."
-                            : "Delete"}
-                        </button>
+                              ? "Deleting..."
+                              : "Delete"}
+                          </button>
 
-                      </div>
+                        </div>
+                      )}
 
                     </article>
 
@@ -1502,7 +1512,7 @@ function InformationCenter({ currentUser, account, onSignOut, onDeleteAccount, o
                   Loading knowledge...
                 </div>
 
-              ) : knowledge.length === 0 ? (
+              ) : visibleKnowledge.length === 0 ? (
 
                 <div className="empty-state">
                   No knowledge articles yet.
@@ -1513,7 +1523,7 @@ function InformationCenter({ currentUser, account, onSignOut, onDeleteAccount, o
 
               ) : (
 
-                knowledge.map((item) => (
+                visibleKnowledge.map((item) => (
 
                   <article
                     key={item.id}
@@ -1597,7 +1607,8 @@ function InformationCenter({ currentUser, account, onSignOut, onDeleteAccount, o
 
                     </div>
 
-                    <div className="knowledge-dashboard-actions">
+                    {account?.role === "admin" && (
+                      <div className="knowledge-dashboard-actions">
 
                       <button
                         type="button"
@@ -1652,7 +1663,8 @@ function InformationCenter({ currentUser, account, onSignOut, onDeleteAccount, o
                           : "Delete"}
                       </button>
 
-                    </div>
+                      </div>
+                    )}
 
                   </article>
 
@@ -2062,7 +2074,8 @@ function InformationCenter({ currentUser, account, onSignOut, onDeleteAccount, o
 
                       </div>
 
-                      <div className="statistics-message-actions">
+                      {account?.role === "admin" && (
+                        <div className="statistics-message-actions">
 
                         <button
                           type="button"
@@ -2106,7 +2119,8 @@ function InformationCenter({ currentUser, account, onSignOut, onDeleteAccount, o
                           Delete
                         </button>
 
-                      </div>
+                        </div>
+                      )}
 
                     </article>
 
@@ -2217,7 +2231,8 @@ function InformationCenter({ currentUser, account, onSignOut, onDeleteAccount, o
 
             </div>
 
-            <div className="announcement-side-actions">
+            {account?.role === "admin" && (
+              <div className="announcement-side-actions">
 
               <button
                 type="button"
@@ -2257,7 +2272,8 @@ function InformationCenter({ currentUser, account, onSignOut, onDeleteAccount, o
                 Delete
               </button>
 
-            </div>
+              </div>
+            )}
 
           </aside>
 
@@ -2395,7 +2411,8 @@ function InformationCenter({ currentUser, account, onSignOut, onDeleteAccount, o
 
             </div>
 
-            <div className="announcement-side-actions">
+            {account?.role === "admin" && (
+              <div className="announcement-side-actions">
 
               <button
                 type="button"
@@ -2412,7 +2429,8 @@ function InformationCenter({ currentUser, account, onSignOut, onDeleteAccount, o
                 Unpin
               </button>
 
-            </div>
+              </div>
+            )}
 
           </aside>
 
@@ -2565,17 +2583,19 @@ function InformationCenter({ currentUser, account, onSignOut, onDeleteAccount, o
 
                         </div>
 
-                        <button
-                          type="button"
-                          className="unpin-button"
-                          onClick={(event) => {
-                            event.stopPropagation();
+                        {account?.role === "admin" && (
+                          <button
+                            type="button"
+                            className="unpin-button"
+                            onClick={(event) => {
+                              event.stopPropagation();
 
-                            handleUnpin(item);
-                          }}
-                        >
-                          Unpin
-                        </button>
+                              handleUnpin(item);
+                            }}
+                          >
+                            Unpin
+                          </button>
+                        )}
 
                       </article>
 
@@ -2655,20 +2675,22 @@ function InformationCenter({ currentUser, account, onSignOut, onDeleteAccount, o
 
                         </div>
 
-                        <button
-                          type="button"
-                          className="unpin-button"
-                          onClick={(event) => {
-                            event.stopPropagation();
+                        {account?.role === "admin" && (
+                          <button
+                            type="button"
+                            className="unpin-button"
+                            onClick={(event) => {
+                              event.stopPropagation();
 
-                            handleUnpin({
-                              ...item,
-                              type: "knowledge",
-                            });
-                          }}
-                        >
-                          Unpin
-                        </button>
+                              handleUnpin({
+                                ...item,
+                                type: "knowledge",
+                              });
+                            }}
+                          >
+                            Unpin
+                          </button>
+                        )}
 
                       </article>
 

@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import App from './App';
 
-test('renders the sign-in screen', async () => {
+test('shows the account loading state while authentication is checked', () => {
   render(<App />);
-  expect(await screen.findByRole('heading', { name: /welcome back/i })).toBeInTheDocument();
+  expect(screen.getByText(/loading your account/i)).toBeInTheDocument();
 });

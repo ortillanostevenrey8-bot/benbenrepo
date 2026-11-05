@@ -12,12 +12,36 @@ import {
   updateDoc,
   onSnapshot,
   serverTimestamp,
+  setDoc,
 } from "firebase/firestore";
+import { getFunctions, httpsCallable } from "firebase/functions";
+import {
+  ref as storageRef,
+  uploadBytesResumable,
+} from "firebase/storage";
+import ReactMarkdown from "react-markdown";
 
-import { db } from "../pages/firebase/firebase";
+import { auth, db, storage } from "../pages/firebase/firebase";
 import ConfirmDialog from "./ConfirmDialog";
 import { searchWalastikWebsite } from "../Services/walastikWebsiteSearch";
 import "./KnowledgePanel.css";
+
+const functions = getFunctions(auth.app);
+const askWalastikAICall = httpsCallable(functions, "askWalastikAI");
+const processWalastikDocumentCall = httpsCallable(
+  functions,
+  "processWalastikDocument",
+  { timeout: 120000 }
+);
+const deleteWalastikDocumentCall = httpsCallable(functions, "deleteWalastikDocument");
+const MAX_DOCUMENT_SIZE = 100 * 1024 * 1024;
+const DOCUMENT_CONTENT_TYPES = {
+  ".pdf": "application/pdf",
+  ".txt": "text/plain",
+  ".md": "text/markdown",
+  ".markdown": "text/markdown",
+  ".csv": "text/csv",
+};
 
 const WALASTIK_SOURCE_URLS = [
   "https://walastik.bfdenterprises.com/",
@@ -61,6 +85,15 @@ export default function KnowledgePanel({
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
   const [privateWebsiteResults, setPrivateWebsiteResults] = useState([]);
+  const [uploadedDocuments, setUploadedDocuments] = useState([]);
+  const [documentsLoading, setDocumentsLoading] = useState(true);
+  const [documentsError, setDocumentsError] = useState("");
+  const [documentMessage, setDocumentMessage] = useState("");
+  const [uploadingDocumentId, setUploadingDocumentId] = useState(null);
+  const [uploadPercent, setUploadPercent] = useState(0);
+  const [documentToDelete, setDocumentToDelete] = useState(null);
+  const [deletingDocumentId, setDeletingDocumentId] = useState(null);
+  const [processingDocumentId, setProcessingDocumentId] = useState(null);
 
   /* =========================================================
      ADD KNOWLEDGE
@@ -159,6 +192,29 @@ export default function KnowledgePanel({
         );
 
         setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(db, "documents"),
+      (snapshot) => {
+        const documents = snapshot.docs
+          .map((item) => ({ id: item.id, ...item.data() }))
+          .sort((first, second) =>
+            (second.uploadedAt?.seconds || 0) - (first.uploadedAt?.seconds || 0)
+          );
+        setUploadedDocuments(documents);
+        setDocumentsLoading(false);
+        setDocumentsError("");
+      },
+      (error) => {
+        console.error("Document list listener error:", error);
+        setDocumentsError("Unable to load uploaded documents.");
+        setDocumentsLoading(false);
       }
     );
 
@@ -339,6 +395,140 @@ export default function KnowledgePanel({
     }
   };
 
+  const handleDocumentUpload = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!isAdmin) {
+      setDocumentMessage("Only administrators can upload documents.");
+      return;
+    }
+
+    const extension = file.name.toLowerCase().match(/\.[^.]+$/)?.[0];
+    if (!extension || !DOCUMENT_CONTENT_TYPES[extension]) {
+      setDocumentMessage("Choose a PDF, TXT, Markdown, or CSV file.");
+      return;
+    }
+    if (file.name.length > 255) {
+      setDocumentMessage("The filename must be 255 characters or fewer.");
+      return;
+    }
+    if (!file.size || file.size > MAX_DOCUMENT_SIZE) {
+      setDocumentMessage("Choose a file that is 100 MB or smaller.");
+      return;
+    }
+
+    const user = auth.currentUser;
+    if (!user) {
+      setDocumentMessage("Sign in as an administrator before uploading.");
+      return;
+    }
+
+    const documentRef = doc(collection(db, "documents"));
+    const documentId = documentRef.id;
+    const safeFilename = file.name
+      .replace(/[^A-Za-z0-9._-]/g, "_")
+      .replace(/^\.+/, "document");
+    const path = `walastik-documents/${user.uid}/${documentId}/${safeFilename}`;
+    let metadataCreated = false;
+    let uploadCompleted = false;
+
+    setDocumentMessage("");
+    setUploadingDocumentId(documentId);
+    setUploadPercent(0);
+
+    try {
+      await setDoc(documentRef, {
+        filename: file.name,
+        storagePath: path,
+        uploadedBy: user.uid,
+        uploadedAt: serverTimestamp(),
+        sizeBytes: file.size,
+        contentType: DOCUMENT_CONTENT_TYPES[extension],
+        status: "uploading",
+        chunkCount: 0,
+      });
+      metadataCreated = true;
+
+      const task = uploadBytesResumable(
+        storageRef(storage, path),
+        file,
+        { contentType: DOCUMENT_CONTENT_TYPES[extension] }
+      );
+      await new Promise((resolve, reject) => {
+        task.on(
+          "state_changed",
+          (snapshot) => {
+            setUploadPercent(Math.round(
+              (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+            ));
+          },
+          reject,
+          resolve
+        );
+      });
+      uploadCompleted = true;
+
+      await processWalastikDocumentCall({ documentId });
+      setDocumentMessage(`${file.name} was uploaded and indexed successfully.`);
+    } catch (error) {
+      console.error("Document upload or indexing error:", error);
+      if (metadataCreated && !uploadCompleted) {
+        try {
+          await updateDoc(documentRef, {
+            status: "failed",
+            errorMessage: "File upload failed. Try uploading it again.",
+          });
+        } catch (statusError) {
+          console.error("Unable to record document upload failure:", statusError);
+        }
+      }
+      setDocumentMessage(
+        `Unable to upload or index ${file.name}. ${error.message || "Please try again."}`
+      );
+    } finally {
+      setUploadingDocumentId(null);
+      setUploadPercent(0);
+    }
+  };
+
+  const retryDocumentIndexing = async (item) => {
+    if (!isAdmin || !item?.id || processingDocumentId) return;
+
+    setProcessingDocumentId(item.id);
+    setDocumentMessage("");
+    try {
+      await processWalastikDocumentCall({ documentId: item.id });
+      setDocumentMessage(`${item.filename} was indexed successfully.`);
+    } catch (error) {
+      console.error("Document re-indexing error:", error);
+      setDocumentMessage(
+        `Unable to index ${item.filename}. ${error.message || "Please try again."}`
+      );
+    } finally {
+      setProcessingDocumentId(null);
+    }
+  };
+
+  const confirmDeleteDocument = async () => {
+    if (!documentToDelete?.id || deletingDocumentId) return;
+
+    setDeletingDocumentId(documentToDelete.id);
+    try {
+      await deleteWalastikDocumentCall({ documentId: documentToDelete.id });
+      setDocumentMessage(`${documentToDelete.filename} was deleted.`);
+      setDocumentToDelete(null);
+    } catch (error) {
+      console.error("Document deletion error:", error);
+      setDocumentMessage(
+        `Unable to delete ${documentToDelete.filename}. ${error.message || "Please try again."}`
+      );
+    } finally {
+      setDeletingDocumentId(null);
+    }
+  };
+
   /* =========================================================
      NORMAL KNOWLEDGE PIN
   ========================================================= */
@@ -363,7 +553,7 @@ export default function KnowledgePanel({
     };
 
   /* =========================================================
-     OFFICIAL WEBSITE SEARCH
+     DOCUMENT RAG AND OFFICIAL WEBSITE SEARCH
   ========================================================= */
 
   const askAI = async () => {
@@ -382,35 +572,56 @@ export default function KnowledgePanel({
     try {
       setAiLoading(true);
       const websiteMatches = searchWalastikWebsite(question);
-      if (websiteMatches.length === 0) {
-        setAiError(
-          "I couldn't find that information on the official Walastik pages indexed here. Check the website directly or contact support@bfdenterprises.com."
-        );
-        return;
+      if (websiteMatches.length) {
+        setPrivateWebsiteResults((results) => [
+          ...websiteMatches.map((match, index) => ({
+            id: `website-${Date.now()}-${index}`,
+            title: match.title,
+            answer: match.details,
+            details: match.details,
+            question,
+            source: "ai",
+            sourceType: "website",
+            sourceUrls: match.sourceUrls,
+            pinned: false,
+            pinnedBy: "",
+            pinnedAt: null,
+            createdAt: new Date(),
+            privateResult: true,
+          })),
+          ...results,
+        ]);
       }
 
+      const { data } = await askWalastikAICall({ question });
       setPrivateWebsiteResults((results) => [
-        ...websiteMatches.map((match, index) => ({
-          id: `website-${Date.now()}-${index}`,
-          title: match.title,
-          answer: match.details,
-          details: match.details,
+        {
+          id: `google-search-${Date.now()}`,
+          title: question,
+          answer: data.answer,
+          details: data.answer,
           question,
           source: "ai",
-          sourceType: "website",
-          sourceUrls: match.sourceUrls,
+          sourceType: data.webSources?.length ? "web-search" : "ai-research",
+          sources: data.sources || [],
+          webSources: data.webSources || [],
           pinned: false,
           pinnedBy: "",
           pinnedAt: null,
           createdAt: new Date(),
           privateResult: true,
-        })),
+        },
         ...results,
       ]);
       setAiQuestion("");
     } catch (error) {
-      console.error("Official website search error:", error);
-      setAiError("The official website search failed. Please try again.");
+      console.error("WALASTIK AI search error:", error);
+      const aiErrorMessage = ["functions/internal", "functions/not-found"].includes(error?.code)
+        ? "Firebase could not reach the askWalastikAI function. Deploy that function and configure its GEMINI_API_KEY secret."
+        : error.message || "Please try again.";
+      setAiError(
+        `WALASTIK AI could not answer right now. ${aiErrorMessage}`
+      );
     } finally {
       setAiLoading(false);
     }
@@ -486,8 +697,10 @@ export default function KnowledgePanel({
           details: selectedAIForPin.details,
           question: selectedAIForPin.question,
           source: "ai",
-          sourceType: selectedAIForPin.sourceType,
-          sourceUrls: selectedAIForPin.sourceUrls,
+          sourceType: selectedAIForPin.sourceType || "ai",
+          sourceUrls: selectedAIForPin.sourceUrls || [],
+          sources: selectedAIForPin.sources || [],
+          webSources: selectedAIForPin.webSources || [],
           pinned: true,
           pinnedBy: aiPinnerName.trim(),
           pinnedAt: serverTimestamp(),
@@ -498,12 +711,17 @@ export default function KnowledgePanel({
         );
       } else {
         await updateDoc(
-          doc(db, "knowledge", selectedAIForPin.id),
+          doc(
+            db,
+            "knowledge",
+            selectedAIForPin.id
+          ),
           {
             pinned: true,
             pinnedBy: aiPinnerName.trim(),
             pinnedAt: serverTimestamp(),
             source: "ai",
+            sourceType: selectedAIForPin.sourceType || "ai",
           }
         );
       }
@@ -634,10 +852,10 @@ export default function KnowledgePanel({
     ]);
 
   /* =========================================================
-     OFFICIAL WEBSITE RESULTS AND PINNED ANSWERS
+     PRIVATE SEARCH RESULTS AND SHARED PINNED AI
   ========================================================= */
 
-  const aiResearch =
+  const websiteSearchResults =
     useMemo(() => {
       const pinnedResults = knowledge
         .filter(
@@ -797,6 +1015,120 @@ export default function KnowledgePanel({
             </form>
           )}
 
+          <section className="knowledge-section document-management-section">
+            <div className="knowledge-section-header">
+              <div>
+                <span className="knowledge-section-label">
+                  DOCUMENT KNOWLEDGE BASE
+                </span>
+                <h2>Uploaded documents</h2>
+                <p>
+                  WALASTIK AI searches indexed document content and cites the matching file and section.
+                </p>
+              </div>
+            </div>
+
+            {isAdmin && (
+              <div className="document-upload-controls">
+                <label className="document-upload-control">
+                  <span>{uploadingDocumentId ? "Uploading..." : "Choose PDF, TXT, Markdown, or CSV"}</span>
+                  <input
+                    type="file"
+                    accept=".pdf,.txt,.md,.markdown,.csv"
+                    onChange={handleDocumentUpload}
+                    disabled={Boolean(uploadingDocumentId)}
+                  />
+                </label>
+                <span className="document-upload-hint">Maximum file size: 100 MB</span>
+              </div>
+            )}
+
+            {uploadingDocumentId && (
+              <div className="document-upload-progress" role="status" aria-live="polite">
+                <span>
+                  Uploading document: {uploadPercent}%
+                </span>
+                <progress value={uploadPercent} max="100">
+                  {uploadPercent}%
+                </progress>
+                <span>Indexing document content...</span>
+              </div>
+            )}
+
+            {documentMessage && (
+              <p className="document-message" role="status" aria-live="polite">
+                {documentMessage}
+              </p>
+            )}
+            {documentsError && (
+              <p className="document-message document-message-error" role="alert">
+                {documentsError}
+              </p>
+            )}
+
+            <div className="document-management-list">
+              {documentsLoading ? (
+                <p className="document-list-notice">Loading uploaded documents...</p>
+              ) : uploadedDocuments.length === 0 ? (
+                <p className="document-list-notice">No documents have been uploaded.</p>
+              ) : (
+                uploadedDocuments.map((item) => (
+                  <article className="document-management-item" key={item.id}>
+                    <div className="document-management-details">
+                      <strong>{item.filename || "Untitled document"}</strong>
+                      <span>
+                        Uploaded {formatDate(item.uploadedAt) || "date unavailable"}
+                        {item.sizeBytes
+                          ? ` · ${(item.sizeBytes / (1024 * 1024)).toFixed(2)} MB`
+                          : ""}
+                      </span>
+                    </div>
+                    <span className={`document-status document-status-${item.status || "failed"}`}>
+                      {item.status === "ready"
+                        ? `Indexed · ${item.chunkCount || 0} chunks`
+                        : item.status === "processing"
+                          ? "Processing"
+                          : item.status === "deleting"
+                            ? "Deleting"
+                            : item.status === "uploading"
+                              ? "Uploading"
+                              : "Indexing failed"}
+                    </span>
+                    {item.status === "failed" && item.errorMessage && (
+                      <p className="document-item-error">{item.errorMessage}</p>
+                    )}
+                    {isAdmin && (
+                      <div className="document-management-actions">
+                        {item.status === "failed" && (
+                          <button
+                            type="button"
+                            className="knowledge-pin-button"
+                            onClick={() => retryDocumentIndexing(item)}
+                            disabled={processingDocumentId === item.id || Boolean(uploadingDocumentId)}
+                          >
+                            {processingDocumentId === item.id ? "Retrying..." : "Retry indexing"}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="knowledge-delete-button"
+                          onClick={() => setDocumentToDelete(item)}
+                          disabled={
+                            deletingDocumentId === item.id
+                            || processingDocumentId === item.id
+                            || Boolean(uploadingDocumentId)
+                          }
+                        >
+                          {deletingDocumentId === item.id ? "Deleting..." : "Delete"}
+                        </button>
+                      </div>
+                    )}
+                  </article>
+                ))
+              )}
+            </div>
+          </section>
+
           <div className="knowledge-divider" />
 
           {/* =================================================
@@ -808,15 +1140,15 @@ export default function KnowledgePanel({
             <div className="knowledge-section-header">
               <div>
                 <span className="knowledge-section-label">
-                  OFFICIAL WALASTIK WEBSITE
+                  WALASTIK AI AND OFFICIAL WEBSITE
                 </span>
 
                 <h2>
-                  Search official Walastik information
+                  Ask WALASTIK AI
                 </h2>
 
                 <p>
-                  Search verified information and guides from the official Walastik website.
+                  Search the web, uploaded documents, and official Walastik pages. Sources are shown with answers when available.
                 </p>
               </div>
             </div>
@@ -827,7 +1159,7 @@ export default function KnowledgePanel({
               <div className="knowledge-search-input">
                 <input
                   type="text"
-                  placeholder="Search Walastik company info, branches, or support guides..."
+                  placeholder="Ask about Walastik or uploaded documents..."
                   value={aiQuestion}
                   onChange={(event) =>
                     setAiQuestion(
@@ -858,7 +1190,7 @@ export default function KnowledgePanel({
               >
                 {aiLoading
                   ? "Searching..."
-                  : "Search official website"}
+                  : "Ask WALASTIK AI"}
               </button>
             </div>
 
@@ -880,11 +1212,11 @@ export default function KnowledgePanel({
 
                 <div>
                   <strong>
-                    Searching...
+                    Searching uploaded documents...
                   </strong>
 
                   <p>
-                    the official Walastik pages.
+                    Retrieving relevant sections and generating a sourced answer.
                   </p>
                 </div>
               </div>
@@ -895,10 +1227,9 @@ export default function KnowledgePanel({
             ================================================= */}
 
             {!aiLoading &&
-              aiResearch.length > 0 && (
+              websiteSearchResults.length > 0 && (
                 <div className="knowledge-list">
-
-                  {aiResearch.map(
+                  {websiteSearchResults.map(
                     (item) => (
                       <article
                         key={item.id}
@@ -940,7 +1271,11 @@ export default function KnowledgePanel({
                                 ? "PINNED"
                                 : item.sourceType === "website"
                                   ? "OFFICIAL WEBSITE"
-                                  : "AI RESEARCH"}
+                                  : item.sourceType === "document-rag"
+                                    ? "DOCUMENT RAG"
+                                    : item.sourceType === "web-search"
+                                      ? "WEB SEARCH"
+                                        : "AI RESEARCH"}
                             </span>
 
                             <h3>
@@ -955,17 +1290,42 @@ export default function KnowledgePanel({
                         {/* ANSWER */}
 
                         <div className="knowledge-card-content ai-answer-content">
-                          {item.details ||
-                            "No answer available."}
+                          <ReactMarkdown>
+                            {item.details || "No answer available."}
+                          </ReactMarkdown>
                         </div>
 
-                        <div className="ai-source-links" onClick={(event) => event.stopPropagation()}>
-                          <span>Official Walastik sources:</span>
-                          {(item.sourceUrls || WALASTIK_SOURCE_URLS).map((url) => {
-                            const sourceName = url.includes("/about") ? "About" : url.includes("/branches") ? "Branches" : url.includes("/troubleshoot") ? "Troubleshooting" : "Walastik Internet";
-                            return <a href={url} key={url} target="_blank" rel="noreferrer">{sourceName}</a>;
-                          })}
-                        </div>
+                        {item.sources?.length > 0 && (
+                          <div className="ai-source-links" onClick={(event) => event.stopPropagation()}>
+                            <span>Uploaded document sources:</span>
+                            {item.sources.map((source, index) => (
+                              <span className="document-source-reference" key={`${source.filename}-${source.section}-${index}`}>
+                                {source.filename}{source.section && source.section !== "Document"
+                                  ? ` · ${source.section}`
+                                  : ""}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {item.webSources?.length > 0 && (
+                          <div className="ai-source-links" onClick={(event) => event.stopPropagation()}>
+                            <span>Web sources:</span>
+                            {item.webSources.map((source) => (
+                              <a href={source.url} key={source.url} target="_blank" rel="noreferrer">{source.title}</a>
+                            ))}
+                          </div>
+                        )}
+
+                        {item.sourceType !== "document-rag" && (
+                          <div className="ai-source-links" onClick={(event) => event.stopPropagation()}>
+                            <span>Official Walastik sources:</span>
+                            {(item.sourceUrls || WALASTIK_SOURCE_URLS).map((url) => {
+                              const sourceName = url.includes("/about") ? "About" : url.includes("/branches") ? "Branches" : url.includes("/troubleshoot") ? "Troubleshooting" : "Walastik Internet";
+                              return <a href={url} key={url} target="_blank" rel="noreferrer">{sourceName}</a>;
+                            })}
+                          </div>
+                        )}
 
                         {/* DATE */}
 
@@ -982,12 +1342,13 @@ export default function KnowledgePanel({
 
                         {/* ACTIONS */}
 
-                        <div
-                          className="knowledge-card-actions"
-                          onClick={(event) =>
-                            event.stopPropagation()
-                          }
-                        >
+                        {isAdmin && (
+                          <div
+                            className="knowledge-card-actions"
+                            onClick={(event) =>
+                              event.stopPropagation()
+                            }
+                          >
 
                           {item.pinned ? (
                             <button
@@ -1030,27 +1391,37 @@ export default function KnowledgePanel({
                             </button>
                           )}
 
-                          <button
-                            type="button"
-                            className="knowledge-delete-button"
-                            disabled={deletingId === item.id}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              if (item.privateResult) {
+                          {item.privateResult ? (
+                            <button
+                              type="button"
+                              className="knowledge-delete-button"
+                              onClick={(event) => {
+                                event.stopPropagation();
                                 setPrivateWebsiteResults((results) =>
                                   results.filter((result) => result.id !== item.id)
                                 );
-                              } else {
+                              }}
+                            >
+                              Dismiss
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="knowledge-delete-button"
+                              disabled={deletingId === item.id}
+                              onClick={(event) => {
+                                event.stopPropagation();
                                 handleDeleteKnowledge(item);
-                              }
-                            }}
-                          >
-                            {deletingId === item.id
-                              ? "Deleting..."
-                              : "Delete"}
-                          </button>
+                              }}
+                            >
+                              {deletingId === item.id
+                                ? "Deleting..."
+                                : "Delete"}
+                            </button>
+                          )}
 
-                        </div>
+                          </div>
+                        )}
 
                         {/* PIN INFORMATION */}
 
@@ -1191,12 +1562,13 @@ export default function KnowledgePanel({
                         </div>
                       )}
 
-                      <div
-                        className="knowledge-card-actions"
-                        onClick={(event) =>
-                          event.stopPropagation()
-                        }
-                      >
+                      {isAdmin && (
+                        <div
+                          className="knowledge-card-actions"
+                          onClick={(event) =>
+                            event.stopPropagation()
+                          }
+                        >
 
                         <button
                           type="button"
@@ -1246,7 +1618,8 @@ export default function KnowledgePanel({
                             : "Delete"}
                         </button>
 
-                      </div>
+                        </div>
+                      )}
 
                       {item.pinned &&
                         item.pinnedBy && (
@@ -1373,11 +1746,39 @@ export default function KnowledgePanel({
               <div className="knowledge-detail-divider" />
 
               <div className="knowledge-detail-message">
-                {selectedKnowledge.details ||
-                  "No details available."}
+                {selectedKnowledge.source === "ai" ? (
+                  <ReactMarkdown>
+                    {selectedKnowledge.details || "No details available."}
+                  </ReactMarkdown>
+                ) : (
+                  selectedKnowledge.details || "No details available."
+                )}
               </div>
 
-              {(selectedKnowledge.source === "ai" || selectedKnowledge.sourceType === "website") && (
+              {selectedKnowledge.sources?.length > 0 && (
+                <div className="ai-source-links ai-detail-source-links">
+                  <span>Uploaded document sources:</span>
+                  {selectedKnowledge.sources.map((source, index) => (
+                    <span className="document-source-reference" key={`${source.filename}-${source.section}-${index}`}>
+                      {source.filename}{source.section && source.section !== "Document"
+                        ? ` · ${source.section}`
+                        : ""}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {selectedKnowledge.webSources?.length > 0 && (
+                <div className="ai-source-links ai-detail-source-links">
+                  <span>Web sources:</span>
+                  {selectedKnowledge.webSources.map((source) => (
+                    <a href={source.url} key={source.url} target="_blank" rel="noreferrer">{source.title}</a>
+                  ))}
+                </div>
+              )}
+
+              {selectedKnowledge.sourceType !== "document-rag"
+                && (selectedKnowledge.source === "ai" || selectedKnowledge.sourceType === "website") && (
                 <div className="ai-source-links ai-detail-source-links">
                   <span>Official Walastik sources:</span>
                   {(selectedKnowledge.sourceUrls || WALASTIK_SOURCE_URLS).map((url) => {
@@ -1391,7 +1792,7 @@ export default function KnowledgePanel({
                 <div className="knowledge-detail-date">
 
                   <span>
-                    Matched / Created
+                    Researched / Created
                   </span>
 
                   <strong>
@@ -1430,7 +1831,8 @@ export default function KnowledgePanel({
 
             </div>
 
-            <div className="knowledge-detail-actions">
+            {isAdmin && (
+              <div className="knowledge-detail-actions">
 
               {selectedKnowledge.source ===
               "ai" ? (
@@ -1538,7 +1940,8 @@ export default function KnowledgePanel({
 
               )}
 
-            </div>
+              </div>
+            )}
 
           </aside>
         </div>
@@ -1702,6 +2105,15 @@ export default function KnowledgePanel({
         onCancel={() => setDeleteTarget(null)}
         onConfirm={confirmDeleteKnowledge}
         loading={Boolean(deletingId)}
+      />
+      <ConfirmDialog
+        show={Boolean(documentToDelete)}
+        title="Delete this document?"
+        message={`Are you sure you want to delete “${documentToDelete?.filename || "this document"}” and its search index? This cannot be undone.`}
+        onCancel={() => setDocumentToDelete(null)}
+        onConfirm={confirmDeleteDocument}
+        loading={Boolean(deletingDocumentId)}
+        label="CONFIRM DOCUMENT DELETE"
       />
     </>
   );

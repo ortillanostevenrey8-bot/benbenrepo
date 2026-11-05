@@ -5,50 +5,50 @@ This React app stores announcements and knowledge entries in Cloud Firestore.
 ## Connect Firebase
 
 1. In the [Firebase Console](https://console.firebase.google.com/), open the `knowledge-announcement` project.
-2. Check that the Firebase web-app configuration in `src/pages/firebase/firebase.js` matches that project. These web-app values are public identifiers, not Gemini secrets.
+2. Confirm the Firebase web-app configuration in `src/pages/firebase/firebase.js` matches that project.
 3. In Firebase Console, open **Build > Firestore Database**, create a database, and choose a location.
 4. Start the app with `npm start`. The app creates the `announcements` and `knowledge` collections when the first entry is added.
 
-## GitHub Pages
+## Document RAG and official website search
 
-Push changes to the `main` branch to build and deploy the site with the GitHub Actions workflow. The repository's `homepage` setting configures asset URLs for the `/benbenrepo/` project path.
+The Knowledge panel preserves its source-linked official website index in `src/Services/walastikWebsiteSearch.js` and also sends questions to WALASTIK AI. WALASTIK AI retrieves relevant chunks from uploaded PDF, TXT, Markdown, and CSV documents, then uses Gemini with Google Search grounding to answer general questions and attach web citations. Walastik-specific claims should be supported by official Walastik pages or uploaded documents; the AI must say when those sources do not verify a claim. Document source filenames and page or section names are included when available. Retrieval from uploaded documents currently uses keyword matching; vector embeddings and semantic vector search are not implemented.
 
-For Firebase Authentication to work on the deployed site, add `ortillanostevenrey8-bot.github.io` to **Authentication > Settings > Authorized domains** in Firebase Console. Deploy the Firestore rules in `firestore.rules` before allowing users to access the database.
+Administrators can upload documents in the Knowledge panel. Files are stored privately under `walastik-documents/` in Firebase Storage. Cloud Functions extract text, split it into overlapping chunks, and store a private keyword index in Firestore. Files are limited to 10 MB and extracted text to 750,000 characters per document. Firestore rules allow authenticated users to read document metadata, but only administrators can upload; browser clients cannot read the indexed chunks, delete document records, or delete Storage objects. Callable Functions independently check the administrator's Firestore user profile before indexing or deleting.
 
-The Knowledge panel searches a small, source-linked index based on the official Walastik About, branches, and troubleshooting pages. It returns published information directly instead of generating answers, so it does not need a Gemini API key, Firebase Cloud Functions, or a billing-plan upgrade. When a question does not match the indexed information, the panel directs users to the official site or customer support rather than guessing.
+## Deploy document RAG
 
-The index is included in the website bundle and is not fetched live from Walastik's site. Update `src/Services/walastikWebsiteSearch.js` when those source pages change. Each result links to the source page so users can confirm current details.
+No deployment or production data changes are performed automatically. Before deploying, review `firestore.rules`, `storage.rules`, and `firebase.json` for the target Firebase project. Deploying the rules changes production access policy, so confirm those changes with the project owner first.
 
-The Firebase web configuration is safe to include in a browser bundle, but Firestore security rules still protect the data. For a private internal app while testing, use:
+1. Install the Cloud Function dependencies and run its checks:
 
-```
-rules_version = '2';
-service cloud.firestore {
-	match /databases/{database}/documents {
-		match /{document=**} {
-			allow read, write: if false;
-		}
-	}
-}
-```
+   ```powershell
+   npm install --prefix functions
+   npm --prefix functions run check
+   npm --prefix functions run test
+   ```
 
-This denies all browser access, so use authenticated rules before deploying. Do not use `allow read, write: if true` in production.
+2. Create or rotate a Gemini API key in Google AI Studio and configure it as a Firebase Functions secret. The key must not be added to React code or frontend environment variables. If a key has been shared in chat or another public place, revoke it and use a newly generated key:
 
-## Deploy Firebase Functions
+   ```powershell
+   firebase login
+   firebase functions:secrets:set GEMINI_API_KEY --project knowledge-announcement
+   ```
 
-Account deletion uses a Firebase callable function and requires Cloud Functions. The Knowledge panel's official website search does not use that function. If you need to deploy the account-deletion function, run:
+3. After reviewing and approving the deployment, deploy the Cloud Functions, Storage rules, and Firestore rules:
 
-```powershell
-firebase login
-npm install --prefix functions
-firebase deploy --only functions:deleteUserAccount --project knowledge-announcement
-```
+   ```powershell
+   firebase deploy --only functions,storage,firestore:rules --project knowledge-announcement
+   ```
 
-Cloud Functions may require the Firebase project to use the Blaze billing plan. The callable verifies the signed-in administrator, deletes the target's Authentication account, and cleans up their user profile, username index, and profile picture. Deploy this function before using **Delete account** in the admin user list.
+This deploys the existing account-deletion function along with the document processing, deletion, and Gemini callables. Cloud Functions and Secret Manager generally require the Firebase project to use the Blaze billing plan. Firebase Storage and Firestore are subject to their current usage quotas and pricing; Gemini API access may have free-tier quotas, but usage beyond the applicable limits can be billed through the configured Google AI account. Review the current Google Cloud, Firebase, and Gemini pricing and quotas before enabling this in production.
 
-## Publish the website
+For a later WALASTIK AI search-only update after rotating the secret, deploy just the changed callable and frontend (no Storage or Firestore rules changes):
 
-The GitHub Pages workflow builds from the `main` branch. Commit and push website changes to `main`, then confirm the **Deploy React App to GitHub Pages** workflow completes successfully. The official website search needs no AI-function or Gemini-key deployment.
+   ```powershell
+   firebase deploy --only functions:askWalastikAI,hosting --project knowledge-announcement
+   ```
+
+After deployment, sign in with an administrator account, upload a small test document, wait for its status to show **Indexed**, and ask a question answered by that document. Verify that the answer cites the correct filename and section. Do not deploy the rules or functions to production until the owner approves it.
 
 ## Available Scripts
 
